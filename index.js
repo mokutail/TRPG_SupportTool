@@ -1,5 +1,5 @@
 // ==========================================
-// ★ Firebaseの初期設定（司令官の鍵に書き換えてください！）
+// ★ Firebaseの初期設定
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
