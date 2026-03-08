@@ -7,11 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPreview = document.getElementById('modalPreview');
     const modalHexInput = document.getElementById('modalHexInput');
 
+    // ★ 修正：ここに「行きたいシナリオ一覧」を追加しました！カラーは可愛いピンク系(#E91E63)にしています
     const defaultMenu = [
         { id: 'recruit', label: '📢 募集画像シート作成', color: '#ff6f00', href: 'recruit/recruit.html' },
         { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#607d8b', href: 'warning/warning.html' },
         { id: 'scenario', label: '📚 自作シナリオ管理', color: '#4caf50', href: 'scenario/scenario.html' },
         { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
+        { id: 'scenario_want', label: '💭 行きたいシナリオ一覧', color: '#E91E63', href: 'scenario_want/scenario_want.html' },
         { id: 'table_kp', label: '🗓️ 卓管理', color: '#9C27B0', href: 'kp/table_kp.html' },
         { id: 'table_pl', label: '🎲 探索者管理', color: '#1976D2', href: 'table/table_pl.html' }
     ];
@@ -32,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (def) {
                 item.href = def.href;
                 item.label = def.label;
-                // isHidden（非表示フラグ）がない場合は初期値false（表示）にする
                 if (item.isHidden === undefined) item.isHidden = false;
             }
         });
@@ -50,16 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMenu() {
         homeView.innerHTML = '';
         currentMenu.forEach((item, index) => {
-            // ★ 通常モードで「非表示(isHidden = true)」に設定されているものは描画しない！
             if (!isEditMode && item.isHidden) return;
 
             const wrapper = document.createElement('div');
             wrapper.className = 'menu-item-wrapper';
 
             if (isEditMode) {
-                // ★ 編集モード時のUI生成
-                const visIcon = item.isHidden ? '◻️' : '✅'; // 非表示なら枠だけ、表示ならチェック
-                const opacity = item.isHidden ? '0.4' : '1';  // 非表示なら半透明にする
+                const visIcon = item.isHidden ? '◻️' : '✅';
+                const opacity = item.isHidden ? '0.4' : '1';
 
                 const editHtml = `
                 <div class="edit-controls" style="display:flex; justify-content:space-between; align-items:center;">
@@ -75,21 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </div>`;
-                // 編集モード中はリンクを無効化し、透明度を適用
                 wrapper.innerHTML = `<a href="javascript:void(0)" class="menu-btn" style="background-color: ${item.color}; opacity: ${opacity}; cursor: default;">${item.label}</a>${editHtml}`;
             } else {
-                // 通常モード
                 wrapper.innerHTML = `<a href="${item.href}" class="menu-btn" style="background-color: ${item.color};">${item.label}</a>`;
             }
             homeView.appendChild(wrapper);
         });
     }
 
-    // ★ 表示/非表示を切り替える関数
     window.toggleVisibility = (index) => {
         currentMenu[index].isHidden = !currentMenu[index].isHidden;
         saveConfig();
-        renderMenu(); // クリックした瞬間に見た目が変わる
+        renderMenu();
     };
 
     function showCustomConfirm(message) {
@@ -225,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return {
                         ...def,
                         color: current ? current.color : def.color,
-                        isHidden: false // リセット時は全て表示する
+                        isHidden: false
                     };
                 });
                 currentMenu = orderedMenu;

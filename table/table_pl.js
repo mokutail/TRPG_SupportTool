@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingPcId = null;
     let editingPcSystem = null;
 
-    const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
+    const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
 
     // --- 画像アップロード ---
     document.getElementById('imageUploadWrapper').addEventListener('click', () => { document.getElementById('pcImage').click(); });

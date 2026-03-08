@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>行きたいシナリオ一覧</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="scenario_want.css">
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">💭 行きたいシナリオ</span>
+    <button class="back-btn" onclick="location.href='../index.html'">🏠 戻る</button>
+</h2>
+
+<div id="scenario-view" class="view">
+    <div class="input-column">
+
+        <div class="system-tabs" id="systemTabs"></div>
+
+        <div class="input-group">
+            <div class="filter-toggle-btn" id="filterToggleBtn">
+                🔍 シナリオを検索・絞り込み <span class="arrow">▼</span>
+            </div>
+            <div class="filter-box" id="filterBox">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="filterScenario" placeholder="シナリオ名で検索" class="sc-band-input">
+                    <input type="text" id="filterPlayerNum" placeholder="人数で検索" class="sc-band-input">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <input type="text" id="filterDuration" placeholder="時間で検索" class="sc-band-input">
+                </div>
+                <button id="btnResetFilter">🔄 絞り込みをリセット</button>
+                <div class="hit-count-display">該当件数: <strong id="scHitCount">0</strong> 件</div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="group-label" id="formTitleLabel">🆕 行きたいシナリオ登録</label>
+
+            <div style="margin-bottom:12px;">
+                <input type="text" id="scTitle" placeholder="*シナリオ名*" class="sc-band-input">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <input type="text" id="scPlayerNum" placeholder="人数" class="sc-band-input">
+                <input type="text" id="scDuration" placeholder="時間" class="sc-band-input">
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <div class="custom-select-wrapper" id="scSystemWrapper">
+                    <div class="select-display" id="scSystemDisplay">CoC 6th</div>
+                    <div class="select-options" id="scSystemOptions">
+                        <div class="option-item" data-value="CoC 6th">CoC 6th</div>
+                        <div class="option-item" data-value="CoC 7th">CoC 7th</div>
+                        <div class="option-item" data-value="エモクロア">エモクロア</div>
+                        <div class="option-item" data-value="マダミス">マダミス</div>
+                    </div>
+                </div>
+                <input type="hidden" id="scSystemHidden" value="CoC 6th">
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <input type="url" id="scUrl" placeholder="Booth" class="sc-band-input">
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <input type="text" id="scHo" placeholder="握りたいHO" class="sc-band-input">
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <textarea id="scMemo" placeholder="メモ / 備考" class="sc-band-input" style="height: 80px; resize: none;"></textarea>
+            </div>
+
+            <button class="action-btn" id="btnAddScenario">リストに追加</button>
+        </div>
+
+        <div class="input-group">
+            <label class="group-label">💭 行きたいシナリオ一覧</label>
+            <div id="scList"></div>
+        </div>
+    </div>
+</div>
+
+<script src="scenario_want.js"></script>
+</body>
+</html>

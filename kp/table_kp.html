@@ -61,12 +61,12 @@
                 <button type="button" class="clear-img-btn" id="btnClearImage" style="display:none;">クリア</button>
             </div>
             <div style="display:flex; flex-direction:column; justify-content:center;">
-                <input type="text" id="kpScenario" placeholder="シナリオ名" class="sc-band-input" style="height: 90px; font-size: 18px;">
+                <input type="text" id="kpScenario" placeholder="*シナリオ名*" class="sc-band-input" style="height: 90px; font-size: 18px;">
             </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <input type="number" id="kpZin" placeholder="何陣目？ (例: 1)" class="sc-band-input">
+            <input type="number" id="kpZin" placeholder="何陣目？" class="sc-band-input">
             <input type="text" id="kpDate" placeholder="卓開始日" class="sc-band-input" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
         </div>
 
@@ -86,17 +86,17 @@
         </div>
 
         <div style="margin-bottom:12px;">
-            <input type="text" id="kpTags" placeholder="タグ (例: ボイセ, 身内卓)" class="sc-band-input">
+            <input type="text" id="kpTags" placeholder="タグ" class="sc-band-input">
         </div>
 
         <div style="margin-bottom:12px;">
-            <input type="url" id="kpDocUrl" placeholder="資料/PDF/ドキュメント URL (任意)" class="sc-band-input">
+            <input type="url" id="kpDocUrl" placeholder="資料/PDF/ドキュメント URL" class="sc-band-input">
         </div>
         <div style="margin-bottom:12px;">
-            <input type="url" id="kpBoothUrl" placeholder="Booth URL (任意)" class="sc-band-input">
+            <input type="url" id="kpBoothUrl" placeholder="Booth URL" class="sc-band-input">
         </div>
         <div style="margin-bottom:15px;">
-            <input type="url" id="kpCcfoliaUrl" placeholder="ココフォリア URL (任意)" class="sc-band-input">
+            <input type="url" id="kpCcfoliaUrl" placeholder="ココフォリア URL" class="sc-band-input">
         </div>
 
         <button class="action-btn" id="btnAddKp">リストに追加</button>
