@@ -1,13 +1,61 @@
+// ==========================================
+// ★ Firebaseの初期設定
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let possData = []; // localStorageの代わりに空の配列を用意
+let editingId = null;
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ==========================================
+    // ★ 2. ログインチェックとリアルタイム同期
+    // ==========================================
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            startRealtimeSync();
+        } else {
+            alert("データの同期にはログインが必要です。トップページに戻ります。");
+            window.location.href = '../index.html';
+        }
+    });
+
+    function startRealtimeSync() {
+        // "scenario_poss" という名前の引き出しを監視する
+        db.collection("users").doc(currentUser.uid).collection("scenario_poss")
+          .orderBy("createdAt", "desc")
+          .onSnapshot((snapshot) => {
+              possData = [];
+              snapshot.forEach((doc) => {
+                  possData.push({ id: doc.id, ...doc.data() });
+              });
+              renderList(); // データが変わるたびに自動で画面更新！
+          });
+    }
+
+    // ==========================================
+    // UI制御のコード（既存のまま）
+    // ==========================================
     const listContainer = document.getElementById('possListContainer');
     const hitCountDisplay = document.getElementById('hitCount');
-    let possData = JSON.parse(localStorage.getItem('trpg_scenario_poss_v1')) || [];
-    let editingId = null;
 
     const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
     let currentSystemFilter = "すべて";
 
-    // --- カスタムプルダウンの共通設定 ---
     function setupSelect(displayId, optionsId, hiddenId, onChange = null) {
         const display = document.getElementById(displayId);
         const options = document.getElementById(optionsId);
@@ -40,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
     });
 
-    // --- システムタブ生成 ---
     function updateFormTitle() {
         const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
         document.getElementById('formTitleLabel').innerHTML = `🆕 所持シナリオの登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
@@ -65,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFormTitle();
     }
 
-    // --- フィルター制御 ---
     document.getElementById('filterToggleBtn').addEventListener('click', function() {
         const box = document.getElementById('filterBox');
         if (box.style.display === 'none' || box.style.display === '') {
@@ -90,7 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderList();
     });
 
-    // --- バッジの色判定 ---
     function getStatusClass(status) {
         if (status.includes('未読')) return 'unread';
         if (status.includes('読了')) return 'read';
@@ -99,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return '';
     }
 
-    // --- リスト描画 ---
     function renderList() {
         listContainer.innerHTML = '';
 
@@ -122,14 +166,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (fTime !== '') {
                 if (!item.time) return;
-
                 let isMatch = item.time.toLowerCase().includes(fTime);
                 const searchNumMatch = fTime.match(/(\d+(?:\.\d+)?)/);
-
                 if (!isMatch && searchNumMatch) {
                     const searchNum = parseFloat(searchNumMatch[1]);
                     const rangeMatch = item.time.match(/(\d+(?:\.\d+)?)\s*[〜~-]\s*(\d+(?:\.\d+)?)/);
-
                     if (rangeMatch) {
                         const min = parseFloat(rangeMatch[1]);
                         const max = parseFloat(rangeMatch[2]);
@@ -164,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const infoHtml = (item.players || item.time) ? `<div class="item-info-row"><span>👥 ${item.players || '未定'}</span><span>⏳ ${item.time || '未定'}</span></div>` : '';
             const memoHtml = item.memo ? `<div style="font-size:12px; color:#777; background:#f8f9fa; padding:8px; border-radius:8px; margin-top:8px;">📝 ${item.memo}</div>` : '';
 
-            // ★ カウンター表示の追加
             const counterHtml = `
                 <div class="control-row">
                     <div class="count-display">KP/GM回数: <strong>${item.runCount || 0}</strong> 回</div>
@@ -196,15 +236,19 @@ document.addEventListener('DOMContentLoaded', () => {
         hitCountDisplay.innerText = hitCount;
     }
 
-    // --- 追加・更新 ---
+    // ==========================================
+    // ★ 3. Firebaseへのデータ保存処理
+    // ==========================================
     document.getElementById('btnAddPoss').addEventListener('click', () => {
+        if (!currentUser) return alert("ログインしてください");
+
         const title = document.getElementById('possTitle').value.trim();
         const status = document.getElementById('possStatusHidden').value;
         let players = document.getElementById('possPlayers').value.trim();
         let time = document.getElementById('possTime').value.trim();
         const url = document.getElementById('possUrl').value.trim();
         const ccfoliaUrl = document.getElementById('possCcfoliaUrl').value.trim();
-        const runCount = parseInt(document.getElementById('possRunCount').value) || 0; // ★ 取得
+        const runCount = parseInt(document.getElementById('possRunCount').value) || 0;
         const memo = document.getElementById('possMemo').value.trim();
 
         if (!title) { alert('シナリオ名を入力してください'); return; }
@@ -212,36 +256,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (players && /[0-9０-９]$/.test(players) && !players.includes('人')) players += 'PL';
         if (time && /[0-9０-９]$/.test(time) && !time.includes('分')) time += '時間';
 
+        const now = Date.now();
+        const system = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
+
+        const newData = {
+            system: editingId ? (possData.find(d => d.id === editingId)?.system || 'CoC 6th') : system,
+            title, status, players, time, url, ccfoliaUrl, runCount, memo,
+            updatedAt: now
+        };
+
+        const targetCollection = db.collection("users").doc(currentUser.uid).collection("scenario_poss");
+
         if (editingId) {
-            const index = possData.findIndex(d => d.id === editingId);
-            if (index > -1) {
-                possData[index] = { ...possData[index], title, status, players, time, url, ccfoliaUrl, runCount, memo, system: possData[index].system || 'CoC 6th' };
-            }
-            editingId = null;
-            document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
-            const btn = document.getElementById('btnAddPoss');
-            btn.innerText = '本棚に追加';
-            btn.classList.remove('edit-mode');
+            targetCollection.doc(editingId).set(newData, { merge: true }).then(() => {
+                editingId = null;
+                resetForm();
+                document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
+                const btn = document.getElementById('btnAddPoss');
+                btn.innerText = '本棚に追加';
+                btn.classList.remove('edit-mode');
+            });
         } else {
-            const system = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
-            possData.unshift({
-                id: Date.now().toString(),
-                system, title, status, players, time, url, ccfoliaUrl, runCount, memo // ★ 追加
+            newData.createdAt = now;
+            targetCollection.add(newData).then(() => {
+                resetForm();
             });
         }
-
-        localStorage.setItem('trpg_scenario_poss_v1', JSON.stringify(possData));
-        resetForm();
-        renderList();
     });
 
-    // ★ カウンター増減処理
+    // ★ カウンター増減処理（Firebaseの金庫を直接書き換える）
     window.updateRunCount = (id, delta) => {
-        const index = possData.findIndex(d => d.id === id);
-        if (index > -1) {
-            possData[index].runCount = Math.max(0, (parseInt(possData[index].runCount) || 0) + delta);
-            localStorage.setItem('trpg_scenario_poss_v1', JSON.stringify(possData));
-            renderList();
+        const item = possData.find(d => d.id === id);
+        if (item) {
+            const newCount = Math.max(0, (parseInt(item.runCount) || 0) + delta);
+            db.collection("users").doc(currentUser.uid).collection("scenario_poss")
+              .doc(id).set({ runCount: newCount }, { merge: true });
         }
     };
 
@@ -255,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('possTime').value = item.time ? item.time.replace(/時間$/, '') : '';
         document.getElementById('possUrl').value = item.url || '';
         document.getElementById('possCcfoliaUrl').value = item.ccfoliaUrl || '';
-        document.getElementById('possRunCount').value = item.runCount || 0; // ★ 編集時に読み込み
+        document.getElementById('possRunCount').value = item.runCount || 0;
         document.getElementById('possMemo').value = item.memo || '';
 
         document.getElementById('possStatusHidden').value = item.status || '未読 (積読)';
@@ -270,9 +319,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.deleteItem = (id) => {
         if (confirm('このシナリオを本棚から削除しますか？')) {
-            possData = possData.filter(d => d.id !== id);
-            localStorage.setItem('trpg_scenario_poss_v1', JSON.stringify(possData));
-            renderList();
+            db.collection("users").doc(currentUser.uid).collection("scenario_poss").doc(id).delete();
+            if (editingId === id) {
+                editingId = null;
+                resetForm();
+                document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
+                const btn = document.getElementById('btnAddPoss');
+                btn.innerText = '本棚に追加';
+                btn.classList.remove('edit-mode');
+            }
         }
     };
 
@@ -282,10 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('possTime').value = '';
         document.getElementById('possUrl').value = '';
         document.getElementById('possCcfoliaUrl').value = '';
-        document.getElementById('possRunCount').value = ''; // ★ リセット
+        document.getElementById('possRunCount').value = '';
         document.getElementById('possMemo').value = '';
     }
 
     renderSystemTabs();
-    renderList();
 });

@@ -1,4 +1,64 @@
+// ==========================================
+// ★ Firebaseの初期設定
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let saveTimeout = null; // オートセーブ用のタイマー
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ==========================================
+    // ★ 2. ログインチェックと、前回の下書きの読み込み
+    // ==========================================
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            loadDraftFromFirebase(); // ログインしたら金庫から下書きを取り出す！
+        } else {
+            alert("データの同期にはログインが必要です。トップページに戻ります。");
+            window.location.href = '../index.html';
+        }
+    });
+
+    // データベースから下書きを読み込む処理
+    function loadDraftFromFirebase() {
+        db.collection("users").doc(currentUser.uid).collection("settings").doc("recruit_draft")
+            .get().then((doc) => {
+                if (doc.exists) {
+                    applyFormState(doc.data());
+                }
+            }).catch(err => console.error("下書きの読み込みに失敗しました:", err));
+    }
+
+    // データベースへ下書きを保存する処理（オートセーブ）
+    function triggerSave() {
+        if (!currentUser) return;
+        clearTimeout(saveTimeout);
+        // 入力が終わってから1秒（1000ミリ秒）後に自動保存する
+        saveTimeout = setTimeout(() => {
+            const state = getFormState();
+            db.collection("users").doc(currentUser.uid).collection("settings").doc("recruit_draft")
+              .set(state, { merge: true })
+              .then(() => console.log("クラウドに下書きを自動保存しました！"));
+        }, 1000);
+    }
+
+    // ==========================================
+    // 既存のUI制御・Canvas描画コード
+    // ==========================================
     const canvas = document.getElementById('recruitCanvas');
     const ctx = canvas.getContext('2d');
     const form = document.getElementById('recruit-form');
@@ -10,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPickingId = null;
     const colorModal = document.getElementById('colorModal');
     const colorWheel = document.getElementById('colorWheel');
-    const grayScaleBar = document.getElementById('grayScaleBar'); // ★ グレースケールバー
+    const grayScaleBar = document.getElementById('grayScaleBar');
     const modalPreview = document.getElementById('modalPreview');
     const modalHexInput = document.getElementById('modalHexInput');
     let favorites = JSON.parse(localStorage.getItem('trpg_fav_colors')) || Array(8).fill('#FFFFFF');
@@ -25,11 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
             drawWheel();
-            drawGrayScaleBar(); // ★ バーも描画
+            drawGrayScaleBar();
         }, 10);
     };
 
-    // カラーホイールの描画
     function drawWheel() {
         if (!colorWheel) return;
         const cwCtx = colorWheel.getContext('2d');
@@ -44,18 +103,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ★ グレースケールバーの描画 (白 → 黒 のグラデーション)
     function drawGrayScaleBar() {
         if (!grayScaleBar) return;
         const ctx = grayScaleBar.getContext('2d');
         const grad = ctx.createLinearGradient(0, 0, grayScaleBar.width, 0);
-        grad.addColorStop(0, '#FFFFFF'); // 左端は白
-        grad.addColorStop(1, '#000000'); // 右端は黒
+        grad.addColorStop(0, '#FFFFFF');
+        grad.addColorStop(1, '#000000');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, grayScaleBar.width, grayScaleBar.height);
     }
 
-    // ホイールからの色取得
     function handleColorPick(e) {
         const rect = colorWheel.getBoundingClientRect();
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -63,20 +120,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const x = cx - rect.left; const y = cy - rect.top;
         const cwCtx = colorWheel.getContext('2d');
         const p = cwCtx.getImageData(x, y, 1, 1).data;
-        if (p[3] === 0) return; // 透明部分は無視
+        if (p[3] === 0) return;
         const hex = "#" + [p[0], p[1], p[2]].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
         updateModalUI(hex);
     }
 
-    // ★ バーからの色取得
     function handleGrayScalePick(e) {
         const rect = grayScaleBar.getBoundingClientRect();
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        // x座標がはみ出さないように制限 (Clamp)
         let x = Math.max(0, Math.min(cx - rect.left, grayScaleBar.width - 1));
-
         const ctx = grayScaleBar.getContext('2d');
-        // y=15(バーの中央) から1ピクセル取得
         const p = ctx.getImageData(x, 15, 1, 1).data;
         const hex = "#" + [p[0], p[1], p[2]].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
         updateModalUI(hex);
@@ -87,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(modalHexInput) modalHexInput.value = hex;
     }
 
-    // ホイールのイベント
     if(colorWheel) {
         colorWheel.addEventListener('mousedown', (e) => {
             handleColorPick(e);
@@ -103,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: false });
     }
 
-    // ★ バーのイベント
     if(grayScaleBar) {
         grayScaleBar.addEventListener('mousedown', (e) => {
             handleGrayScalePick(e);
@@ -148,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         colorModal.style.display = 'none';
         if (previewSection) previewSection.style.display = 'flex';
         draw();
+        triggerSave(); // ★ 色を変えたら自動保存！
     };
 
     document.getElementById('btnModalCancel').onclick = () => {
@@ -161,17 +213,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const recruitTypeInput = document.getElementById('recruitType');
     const playerNumGroup = document.getElementById('playerNumGroup');
 
-    typeSelectBtn.onclick = () => {
-        typeModal.style.display = 'flex';
-        if (previewSection) previewSection.style.display = 'none';
-    };
+    if(typeSelectBtn) {
+        typeSelectBtn.onclick = () => {
+            typeModal.style.display = 'flex';
+            if (previewSection) previewSection.style.display = 'none';
+        };
+    }
 
-    typeModal.onclick = (e) => {
-        if (e.target === typeModal) {
-            typeModal.style.display = 'none';
-            if (previewSection) previewSection.style.display = 'flex';
-        }
-    };
+    if(typeModal) {
+        typeModal.onclick = (e) => {
+            if (e.target === typeModal) {
+                typeModal.style.display = 'none';
+                if (previewSection) previewSection.style.display = 'flex';
+            }
+        };
+    }
 
     window.selectType = (val) => {
         recruitTypeInput.value = val;
@@ -181,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         typeModal.style.display = 'none';
         if (previewSection) previewSection.style.display = 'flex';
         draw();
+        triggerSave(); // ★ 種類を変えたら自動保存！
     };
 
     document.querySelectorAll('.modal-list-item').forEach(item => {
@@ -199,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = '';
         renderCustomPills(type, containerId);
         draw();
+        triggerSave(); // ★ カスタムタグを追加したら自動保存！
     };
 
     function renderCustomPills(type, containerId) {
@@ -217,6 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         customData[type] = customData[type].filter(v => v !== val);
                         renderCustomPills(type, containerId);
                         draw();
+                        triggerSave(); // ★ 削除したら自動保存！
                     }
                 }, 800);
             });
@@ -227,6 +286,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCheckedValues(name, separator = ' / ') {
         return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value).join(separator);
+    }
+
+    // ★ 保存用に配列のまま取得する関数
+    function getCheckedValuesArray(name) {
+        return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
     }
 
     // --- 🖼️ Canvas描画ロジック ---
@@ -292,7 +356,79 @@ document.addEventListener('DOMContentLoaded', () => {
         remarks.split('\n').forEach((line, i) => { if (i < 8) ctx.fillText(line, startX + 80, currentY + 15 + (i * 50)); });
     }
 
-    form.addEventListener('input', draw);
+    // ★ フォームが入力されるたびに描画＆オートセーブを実行！
+    form.addEventListener('input', () => {
+        draw();
+        triggerSave();
+    });
+
+    // ==========================================
+    // ★ 3. フォームの状態を読み書きする関数
+    // ==========================================
+    function getFormState() {
+        return {
+            recruitType: document.getElementById('recruitType').value,
+            scenarioName: document.getElementById('scenarioName').value,
+            schedule: document.getElementById('schedule').value,
+            playerNum: document.getElementById('playerNum').value,
+            duration: document.getElementById('duration').value,
+            recruitDetail: document.getElementById('recruitDetail').value,
+            colors: {
+                colorBg: document.getElementById('colorBg').value,
+                colorText: document.getElementById('colorText').value,
+                colorCard: document.getElementById('colorCard').value,
+                colorCardText: document.getElementById('colorCardText').value,
+                colorTagBg: document.getElementById('colorTagBg').value,
+                colorTagText: document.getElementById('colorTagText').value
+            },
+            customData: customData,
+            checks: {
+                gameSystem: getCheckedValuesArray('gameSystem'),
+                format: getCheckedValuesArray('format'),
+                tool: getCheckedValuesArray('tool'),
+                scope: getCheckedValuesArray('scope'),
+                method: getCheckedValuesArray('method')
+            }
+        };
+    }
+
+    function applyFormState(data) {
+        if (!data) return;
+
+        if(data.recruitType) selectType(data.recruitType);
+        if(data.scenarioName) document.getElementById('scenarioName').value = data.scenarioName;
+        if(data.schedule) document.getElementById('schedule').value = data.schedule;
+        if(data.playerNum) document.getElementById('playerNum').value = data.playerNum;
+        if(data.duration) document.getElementById('duration').value = data.duration;
+        if(data.recruitDetail) document.getElementById('recruitDetail').value = data.recruitDetail;
+
+        if(data.colors) {
+            for(const [id, color] of Object.entries(data.colors)) {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.value = color;
+                    const previewEl = document.getElementById('preview-' + id);
+                    if(previewEl) previewEl.style.backgroundColor = color;
+                }
+            }
+        }
+
+        if(data.customData) {
+            customData = data.customData;
+            renderCustomPills('system', 'system-pill-container');
+            renderCustomPills('tool', 'tool-pill-container');
+        }
+
+        if(data.checks) {
+            ['gameSystem', 'format', 'tool', 'scope', 'method'].forEach(name => {
+                const savedVals = data.checks[name] || [];
+                document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                    cb.checked = savedVals.includes(cb.value);
+                });
+            });
+        }
+        draw();
+    }
 
     function showConfirm(message) {
         return new Promise((resolve) => {
@@ -335,10 +471,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 recruitTypeInput.value = 'PL募集';
-                typeSelectBtn.innerText = 'PL募集';
-                playerNumGroup.style.display = 'block';
+                if(typeSelectBtn) typeSelectBtn.innerText = 'PL募集';
+                if(playerNumGroup) playerNumGroup.style.display = 'block';
 
                 draw();
+                triggerSave(); // ★ リセット状態もクラウドに保存！
             }
         }, 150);
     };

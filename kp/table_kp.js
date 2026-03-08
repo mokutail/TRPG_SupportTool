@@ -1,15 +1,59 @@
+// ==========================================
+// ★ Firebaseの初期設定
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let kpData = []; // localStorageの代わりに空の配列を用意
+let currentImageBase64 = null;
+let currentSystemFilter = "すべて";
+let editingId = null;
+let editingSystem = null;
+
+const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
+
 document.addEventListener('DOMContentLoaded', () => {
     const kpListContainer = document.getElementById('kpListContainer');
     const hitCountDisplay = document.getElementById('kpHitCount');
 
-    let kpData = JSON.parse(localStorage.getItem('trpg_kp_v1')) || [];
+    // ==========================================
+    // ★ 2. ログインチェックとリアルタイム同期
+    // ==========================================
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            startRealtimeSync();
+        } else {
+            alert("データの同期にはログインが必要です。トップページに戻ります。");
+            window.location.href = '../index.html';
+        }
+    });
 
-    let currentImageBase64 = null;
-    let currentSystemFilter = "すべて";
-    let editingId = null;
-    let editingSystem = null;
-
-    const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
+    function startRealtimeSync() {
+        // "table_kp" という名前の引き出しを監視する
+        db.collection("users").doc(currentUser.uid).collection("table_kp")
+          .orderBy("createdAt", "desc")
+          .onSnapshot((snapshot) => {
+              kpData = [];
+              snapshot.forEach((doc) => {
+                  kpData.push({ id: doc.id, ...doc.data() });
+              });
+              renderKpList(); // データが変わるたびに自動で画面更新！
+          });
+    }
 
     // --- 🎨 画像アップロード ---
     document.getElementById('imageUploadWrapper').addEventListener('click', () => {
@@ -134,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderKpList();
     });
 
-    // --- 🎨 ステータスバッジのスタイル ---
     function getStatusBadgeStyle(status) {
         switch(status) {
             case '完走': return 'alive';
@@ -196,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const linksContainer = linksHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">${linksHtml}</div>` : '';
 
-            // ★ 修正：ボタンの並び順を「次陣を作成」「修正」「削除」に変更。テキストを「卓開始日」に変更。
+            // ★ HTML部分
             item.innerHTML = `
                 <div class="item-actions-corner">
                     <button class="corner-btn continue" onclick="createNextZin('${kp.id}')">次陣を作成</button>
@@ -244,8 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
         hitCountDisplay.innerText = hitCount;
     }
 
-    // --- 🚀 新規登録・更新 ---
+    // ==========================================
+    // ★ 3. Firebaseへのデータ保存・更新処理
+    // ==========================================
     document.getElementById('btnAddKp').addEventListener('click', () => {
+        if (!currentUser) return alert("ログインしてください");
+
         const scenario = document.getElementById('kpScenario').value.trim();
         const zin = document.getElementById('kpZin').value || 1;
         const date = document.getElementById('kpDate').value.trim();
@@ -259,29 +306,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!scenario) { alert('シナリオ名は必須です'); return; }
 
-        if (editingId) {
-            const index = kpData.findIndex(k => k.id === editingId);
-            if (index > -1) {
-                kpData[index] = { ...kpData[index], scenario, zin, date, players, status, tags, docUrl, boothUrl, ccfoliaUrl, image: currentImageBase64 };
-            }
-            editingId = null;
-            editingSystem = null;
-            document.getElementById('formTitleLabel').innerText = '✏️ 新規KP卓の登録';
-            const btn = document.getElementById('btnAddKp');
-            btn.innerText = 'リストに追加';
-            btn.classList.remove('edit-mode');
-        } else {
-            const system = currentSystemFilter === "すべて" ? "CoC 6th" : currentSystemFilter;
-            const newKp = {
-                id: Date.now().toString(),
-                system, scenario, zin, date, players, status, tags, docUrl, boothUrl, ccfoliaUrl, image: currentImageBase64
-            };
-            kpData.unshift(newKp);
-        }
+        const now = Date.now();
+        const system = currentSystemFilter === "すべて" ? "CoC 6th" : currentSystemFilter;
 
-        saveData();
-        resetForm();
-        updateFormTitle();
+        const newData = {
+            system: editingId ? (editingSystem || system) : system,
+            scenario, zin, date, players, status, tags, docUrl, boothUrl, ccfoliaUrl, image: currentImageBase64,
+            updatedAt: now
+        };
+
+        const targetCollection = db.collection("users").doc(currentUser.uid).collection("table_kp");
+
+        if (editingId) {
+            targetCollection.doc(editingId).set(newData, { merge: true }).then(() => {
+                editingId = null;
+                editingSystem = null;
+                resetForm();
+                updateFormTitle();
+            });
+        } else {
+            newData.createdAt = now;
+            targetCollection.add(newData).then(() => {
+                resetForm();
+                updateFormTitle();
+            });
+        }
     });
 
     // --- ✍️ 編集モード ---
@@ -347,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('btnClearImage').click();
         }
 
-        editingId = null;
+        editingId = null; // ★ IDを消すことで「新規登録」扱いにする
         document.getElementById('formTitleLabel').innerText = `✨ ${kp.scenario} の次陣を作成 (${kp.system})`;
         const btn = document.getElementById('btnAddKp');
         btn.innerText = '新しい陣を追加';
@@ -355,10 +404,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // ★ 削除処理（Firebaseから消す）
     window.deleteKp = (id) => {
         if (confirm('このKP卓データを完全に削除しますか？')) {
-            kpData = kpData.filter(k => k.id !== id);
-            saveData();
+            db.collection("users").doc(currentUser.uid).collection("table_kp").doc(id).delete();
         }
     };
 
@@ -374,13 +423,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('kpStatusDisplay').innerText = "予定";
         document.getElementById('kpStatusHidden').value = "予定";
         document.getElementById('btnClearImage').click();
-    }
 
-    function saveData() {
-        localStorage.setItem('trpg_kp_v1', JSON.stringify(kpData));
-        renderKpList();
+        editingId = null;
+        editingSystem = null;
+        const btn = document.getElementById('btnAddKp');
+        btn.innerText = 'リストに追加';
+        btn.classList.remove('edit-mode');
     }
 
     renderSystemTabs();
-    renderKpList();
 });

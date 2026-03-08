@@ -1,140 +1,200 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const targetId = localStorage.getItem('trpg_edit_pc_id');
-    let pcData = JSON.parse(localStorage.getItem('trpg_pcs_v1')) || [];
+// ==========================================
+// ★ Firebaseの初期設定
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};
 
-    const pcIndex = pcData.findIndex(p => p.id === targetId);
-    if (pcIndex === -1) {
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let pc = {}; // Firebaseから取得したデータを入れる箱
+let currentImageBase64 = null;
+let historyList = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    // どのPCを編集するか、IDだけはlocalStorageから受け取る
+    const targetId = localStorage.getItem('trpg_edit_pc_id');
+
+    if (!targetId) {
         alert("データが見つかりません");
         window.location.href = 'table_pl.html';
         return;
     }
 
-    const pc = pcData[pcIndex];
-    let currentImageBase64 = pc.image || null;
-
-    // ★ 修正：編集画面を開くとき、日付順(古い順=昇順)に並び替える
-    let historyList = [...(pc.history || [])];
-    historyList.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        const validA = !isNaN(dateA);
-        const validB = !isNaN(dateB);
-
-        if (!validA && validB) return -1; // 日付なしは古い(上)とする
-        if (validA && !validB) return 1;
-        if (!validA && !validB) return 0;
-        return dateA - dateB; // 古い日付が先(昇順)
+    // ==========================================
+    // ★ 2. ログインチェックと金庫からのデータ読み込み
+    // ==========================================
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            loadPcDataFromFirebase();
+        } else {
+            alert("データの同期にはログインが必要です。トップページに戻ります。");
+            window.location.href = '../index.html';
+        }
     });
 
-    // --- 汎用ドロップダウン設定関数 ---
-    function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText) {
-        let currentList = JSON.parse(localStorage.getItem(storageKey)) || defaultList;
-        const display = document.getElementById(displayId);
-        const hidden = document.getElementById(hiddenId);
-        const options = document.getElementById(optionsId);
+    // 編集画面は、編集中に裏でデータが変わると入力中の文字が消えてしまうので、
+    // 「画面を開いた時に1回だけ」金庫からデータを持ってきます！（getを使います）
+    function loadPcDataFromFirebase() {
+        db.collection("users").doc(currentUser.uid).collection("characters").doc(targetId)
+          .get().then((doc) => {
+              if (doc.exists) {
+                  pc = { id: doc.id, ...doc.data() };
+                  currentImageBase64 = pc.image || null;
 
-        display.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.select-options').forEach(opt => { if(opt !== options) opt.classList.remove('active'); });
-            options.classList.toggle('active');
-        });
+                  // 履歴データの準備（日付順に並び替え）
+                  historyList = [...(pc.history || [])];
+                  historyList.sort((a, b) => {
+                      const dateA = new Date(a.date).getTime();
+                      const dateB = new Date(b.date).getTime();
+                      const validA = !isNaN(dateA);
+                      const validB = !isNaN(dateB);
 
-        function renderOptions() {
-            options.innerHTML = '';
-            currentList.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'option-item';
-                div.setAttribute('data-value', item);
-                div.innerText = item;
-                let isLongPress = false;
+                      if (!validA && validB) return -1;
+                      if (validA && !validB) return 1;
+                      if (!validA && !validB) return 0;
+                      return dateA - dateB;
+                  });
 
-                div.addEventListener('click', (e) => {
-                    if (isLongPress) { isLongPress = false; return; }
-                    display.innerText = item;
-                    hidden.value = item;
-                    options.classList.remove('active');
-                });
-
-                if (!defaultList.includes(item)) {
-                    let timer;
-                    const startPress = () => {
-                        isLongPress = false;
-                        timer = setTimeout(() => {
-                            isLongPress = true;
-                            if (confirm(`追加した${placeholderText}「${item}」を削除しますか？`)) {
-                                currentList = currentList.filter(v => v !== item);
-                                localStorage.setItem(storageKey, JSON.stringify(currentList));
-                                if (hidden.value === item) { display.innerText = placeholderText; hidden.value = ""; }
-                                renderOptions();
-                            }
-                        }, 800);
-                    };
-                    const cancelPress = () => clearTimeout(timer);
-                    div.addEventListener('touchstart', startPress, {passive: true});
-                    div.addEventListener('touchend', cancelPress);
-                    div.addEventListener('mousedown', startPress);
-                    div.addEventListener('mouseup', cancelPress);
-                }
-                options.appendChild(div);
-            });
-
-            const addDiv = document.createElement('div');
-            addDiv.className = 'option-item';
-            addDiv.style.color = '#76ADAF';
-            addDiv.innerText = `➕ 新しい${placeholderText}を追加`;
-            addDiv.addEventListener('click', () => {
-                const newVal = prompt(`新しい${placeholderText}を入力してください`);
-                if (newVal && newVal.trim() !== '') {
-                    const val = newVal.trim();
-                    if (!currentList.includes(val)) {
-                        currentList.push(val);
-                        localStorage.setItem(storageKey, JSON.stringify(currentList));
-                        renderOptions();
-                    }
-                    display.innerText = val;
-                    hidden.value = val;
-                }
-                options.classList.remove('active');
-            });
-            options.appendChild(addDiv);
-        }
-
-        renderOptions();
-        return {
-            setValue: (val) => {
-                if (val) {
-                    if (!currentList.includes(val)) {
-                        currentList.push(val);
-                        localStorage.setItem(storageKey, JSON.stringify(currentList));
-                        renderOptions();
-                    }
-                    display.innerText = val;
-                    hidden.value = val;
-                }
-            }
-        };
+                  // データの準備ができたら画面を描画する！
+                  initFormUI();
+              } else {
+                  alert("データが見つかりません（削除された可能性があります）");
+                  window.location.href = 'table_pl.html';
+              }
+          }).catch(err => {
+              console.error("データ取得エラー:", err);
+              alert("データの読み込みに失敗しました。");
+          });
     }
 
-    const editGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'editPcGenderDisplay', 'editPcGenderHidden', 'editPcGenderOptions', '性別');
-    const editAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'editPcAgeDisplay', 'editPcAgeHidden', 'editPcAgeOptions', '年齢');
-    const editRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'editPcRaceDisplay', 'editPcRaceHidden', 'editPcRaceOptions', '種族');
-    const editJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'editPcJobDisplay', 'editPcJobHidden', 'editPcJobOptions', '職業');
+    // ==========================================
+    // ★ 3. UIの準備と描画（データ取得後に呼ばれます）
+    // ==========================================
+    function initFormUI() {
+        // --- 汎用ドロップダウン設定関数（カスタム項目は端末ごとの保存でOK） ---
+        function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText) {
+            let currentList = JSON.parse(localStorage.getItem(storageKey)) || defaultList;
+            const display = document.getElementById(displayId);
+            const hidden = document.getElementById(hiddenId);
+            const options = document.getElementById(optionsId);
 
-    window.addEventListener('click', () => { document.querySelectorAll('.select-options').forEach(opt => opt.classList.remove('active')); });
+            display.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.select-options').forEach(opt => { if(opt !== options) opt.classList.remove('active'); });
+                options.classList.toggle('active');
+            });
 
-    // --- 値のセット ---
-    document.getElementById('editPcName').value = pc.name || '';
-    document.getElementById('editPcTags').value = pc.tags || '';
-    document.getElementById('editPcUrl').value = pc.url || '';
-    editGender.setValue(pc.gender);
-    editAge.setValue(pc.age);
-    editRace.setValue(pc.race);
-    editJob.setValue(pc.job);
+            function renderOptions() {
+                options.innerHTML = '';
+                currentList.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'option-item';
+                    div.setAttribute('data-value', item);
+                    div.innerText = item;
+                    let isLongPress = false;
 
-    if (currentImageBase64) {
-        document.getElementById('editImagePreview').style.backgroundImage = `url(${currentImageBase64})`;
-        document.getElementById('editImagePreviewText').style.display = 'none';
-        document.getElementById('editBtnClearImage').style.display = 'block';
+                    div.addEventListener('click', (e) => {
+                        if (isLongPress) { isLongPress = false; return; }
+                        display.innerText = item;
+                        hidden.value = item;
+                        options.classList.remove('active');
+                    });
+
+                    if (!defaultList.includes(item)) {
+                        let timer;
+                        const startPress = () => {
+                            isLongPress = false;
+                            timer = setTimeout(() => {
+                                isLongPress = true;
+                                if (confirm(`追加した${placeholderText}「${item}」を削除しますか？`)) {
+                                    currentList = currentList.filter(v => v !== item);
+                                    localStorage.setItem(storageKey, JSON.stringify(currentList));
+                                    if (hidden.value === item) { display.innerText = placeholderText; hidden.value = ""; }
+                                    renderOptions();
+                                }
+                            }, 800);
+                        };
+                        const cancelPress = () => clearTimeout(timer);
+                        div.addEventListener('touchstart', startPress, {passive: true});
+                        div.addEventListener('touchend', cancelPress);
+                        div.addEventListener('mousedown', startPress);
+                        div.addEventListener('mouseup', cancelPress);
+                    }
+                    options.appendChild(div);
+                });
+
+                const addDiv = document.createElement('div');
+                addDiv.className = 'option-item';
+                addDiv.style.color = '#76ADAF';
+                addDiv.innerText = `➕ 新しい${placeholderText}を追加`;
+                addDiv.addEventListener('click', () => {
+                    const newVal = prompt(`新しい${placeholderText}を入力してください`);
+                    if (newVal && newVal.trim() !== '') {
+                        const val = newVal.trim();
+                        if (!currentList.includes(val)) {
+                            currentList.push(val);
+                            localStorage.setItem(storageKey, JSON.stringify(currentList));
+                            renderOptions();
+                        }
+                        display.innerText = val;
+                        hidden.value = val;
+                    }
+                    options.classList.remove('active');
+                });
+                options.appendChild(addDiv);
+            }
+
+            renderOptions();
+            return {
+                setValue: (val) => {
+                    if (val) {
+                        if (!currentList.includes(val)) {
+                            currentList.push(val);
+                            localStorage.setItem(storageKey, JSON.stringify(currentList));
+                            renderOptions();
+                        }
+                        display.innerText = val;
+                        hidden.value = val;
+                    }
+                }
+            };
+        }
+
+        const editGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'editPcGenderDisplay', 'editPcGenderHidden', 'editPcGenderOptions', '性別');
+        const editAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'editPcAgeDisplay', 'editPcAgeHidden', 'editPcAgeOptions', '年齢');
+        const editRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'editPcRaceDisplay', 'editPcRaceHidden', 'editPcRaceOptions', '種族');
+        const editJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'editPcJobDisplay', 'editPcJobHidden', 'editPcJobOptions', '職業');
+
+        window.addEventListener('click', () => { document.querySelectorAll('.select-options').forEach(opt => opt.classList.remove('active')); });
+
+        // --- 値のセット ---
+        document.getElementById('editPcName').value = pc.name || '';
+        document.getElementById('editPcTags').value = pc.tags || '';
+        document.getElementById('editPcUrl').value = pc.url || '';
+        editGender.setValue(pc.gender);
+        editAge.setValue(pc.age);
+        editRace.setValue(pc.race);
+        editJob.setValue(pc.job);
+
+        if (currentImageBase64) {
+            document.getElementById('editImagePreview').style.backgroundImage = `url(${currentImageBase64})`;
+            document.getElementById('editImagePreviewText').style.display = 'none';
+            document.getElementById('editBtnClearImage').style.display = 'block';
+        }
+
+        renderHistory();
     }
 
     // --- 画像処理 ---
@@ -177,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
         historyList.forEach((h, index) => {
             const div = document.createElement('div');
             div.className = 'edit-history-item';
-            // ★ 上から「シナリオ1」「シナリオ2」と昇順になるように設定
             div.innerHTML = `
                 <div class="edit-history-header">
                     <span style="font-size:12px; color:#888; font-weight:bold;">シナリオ ${index + 1}</span>
@@ -208,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btnAddHistoryRow').addEventListener('click', () => {
         updateHistoryArrayFromDOM();
-        // ★ 新しい履歴は一番下（最新）に追加される
         historyList.push({ scenario: '', date: '', ho: '', status: '生還' });
         renderHistory();
     });
@@ -226,15 +284,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    renderHistory();
-
-    // --- 保存処理 ---
+    // ==========================================
+    // ★ 4. 保存処理（Firebaseの金庫へ書き込む！）
+    // ==========================================
     document.getElementById('btnSaveEdit').addEventListener('click', () => {
+        if (!currentUser) return alert("ログインしてください");
+
         const name = document.getElementById('editPcName').value.trim();
         if (!name) { alert('PC名は必須です'); return; }
 
         updateHistoryArrayFromDOM();
 
+        // 技能値（いあきゃら）データのパース
         const iacharaText = document.getElementById('editPcIachara').value.trim();
         if (iacharaText) {
             try {
@@ -251,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // データの組み立て
         pc.name = name;
         pc.gender = document.getElementById('editPcGenderHidden').value;
         pc.age = document.getElementById('editPcAgeHidden').value;
@@ -259,13 +321,21 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.tags = document.getElementById('editPcTags').value.trim();
         pc.url = document.getElementById('editPcUrl').value.trim();
         pc.image = currentImageBase64;
+        pc.updatedAt = Date.now();
 
-        // ★ 修正：リスト表示用などのために、裏側では「降順(最新が一番上)」に逆転させて保存する
+        // リスト表示用に裏側では「降順(最新が一番上)」に逆転させて保存
         pc.history = historyList.slice().reverse();
 
-        pcData[pcIndex] = pc;
-        localStorage.setItem('trpg_pcs_v1', JSON.stringify(pcData));
-
-        window.location.href = 'detail.html';
+        // 金庫へ上書き保存！
+        db.collection("users").doc(currentUser.uid).collection("characters").doc(pc.id)
+          .set(pc, { merge: true })
+          .then(() => {
+              // 保存が成功したら詳細画面に戻る
+              window.location.href = 'detail.html'; // ※ファイル名は司令官の環境に合わせてください
+          })
+          .catch(err => {
+              console.error("保存エラー:", err);
+              alert("データの保存に失敗しました。");
+          });
     });
 });
