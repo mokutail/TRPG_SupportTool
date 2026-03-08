@@ -9,13 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ★ 修正：ここに「行きたいシナリオ一覧」を追加しました！カラーは可愛いピンク系(#E91E63)にしています
     const defaultMenu = [
-        { id: 'recruit', label: '📢 募集画像シート作成', color: '#ff6f00', href: 'recruit/recruit.html' },
-        { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#607d8b', href: 'warning/warning.html' },
-        { id: 'scenario', label: '📚 自作シナリオ管理', color: '#4caf50', href: 'scenario/scenario.html' },
-        { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
-        { id: 'scenario_want', label: '💭 行きたいシナリオ一覧', color: '#E91E63', href: 'scenario_want/scenario_want.html' },
-        { id: 'table_kp', label: '🗓️ 卓管理', color: '#9C27B0', href: 'kp/table_kp.html' },
-        { id: 'table_pl', label: '🎲 探索者管理', color: '#1976D2', href: 'table/table_pl.html' }
+        { id: 'recruit', label: '📢 募集画像シート作成', color: '#5a5faa', href: 'recruit/recruit.html' },
+        { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#5a5faa', href: 'warning/warning.html' },
+        { id: 'scenario', label: '📚 自作シナリオ管理', color: '#5a5faa', href: 'scenario/scenario.html' },
+        { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#5a5faa', href: 'scenario_poss/scenario_poss.html' },
+        { id: 'scenario_want', label: '💭 行きたいシナリオ一覧', color: '#5a5faa', href: 'scenario_want/scenario_want.html' },
+        { id: 'table_kp', label: '🗓️ 卓管理', color: '#5a5faa', href: 'kp/table_kp.html' },
+        { id: 'table_pl', label: '🎲 探索者管理', color: '#5a5faa', href: 'table/table_pl.html' }
     ];
 
     let currentMenu = JSON.parse(localStorage.getItem('trpg_menu_config'));
