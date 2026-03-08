@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>探索者の編集</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="table.css">
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">✍️ 探索者の編集</span>
+    <button class="back-btn" onclick="location.href='detail.html'">🏠 戻る</button>
+</h2>
+
+<div class="view" style="padding-top:10px;">
+    <div class="input-group">
+        <label class="group-label">👤 基本情報</label>
+
+        <div style="display: grid; grid-template-columns: 90px 1fr; gap: 15px; margin-bottom: 12px;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+                <div class="image-upload-wrapper" id="editImageUploadWrapper">
+                    <div id="editImagePreview" class="image-preview"><span id="editImagePreviewText">顔写真<br>(タップ)</span></div>
+                    <input type="file" id="editPcImage" accept="image/*" style="display:none;">
+                </div>
+                <button type="button" class="clear-img-btn" id="editBtnClearImage" style="display:none;">クリア</button>
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:center;">
+                <input type="text" id="editPcName" placeholder="PC名 (探索者名)" class="sc-band-input" style="height: 90px; font-size: 18px;">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="custom-select-wrapper" id="editPcGenderWrapper">
+                <div class="select-display" id="editPcGenderDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">性別</div>
+                <div class="select-options" id="editPcGenderOptions"></div>
+            </div>
+            <input type="hidden" id="editPcGenderHidden" value="">
+
+            <div class="custom-select-wrapper" id="editPcAgeWrapper">
+                <div class="select-display" id="editPcAgeDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">年齢</div>
+                <div class="select-options" id="editPcAgeOptions"></div>
+            </div>
+            <input type="hidden" id="editPcAgeHidden" value="">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="custom-select-wrapper" id="editPcRaceWrapper">
+                <div class="select-display" id="editPcRaceDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">種族</div>
+                <div class="select-options" id="editPcRaceOptions"></div>
+            </div>
+            <input type="hidden" id="editPcRaceHidden" value="">
+
+            <div class="custom-select-wrapper" id="editPcJobWrapper">
+                <div class="select-display" id="editPcJobDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">職業</div>
+                <div class="select-options" id="editPcJobOptions"></div>
+            </div>
+            <input type="hidden" id="editPcJobHidden" value="">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="text" id="editPcTags" placeholder="タグ (例: 秘匿, 医者)" class="sc-band-input">
+        </div>
+        <div style="margin-bottom:12px;">
+            <input type="url" id="editPcUrl" placeholder="キャラシURL(任意)" class="sc-band-input">
+        </div>
+        <div style="margin-bottom:15px;">
+            <textarea id="editPcIachara" placeholder="▼ いあきゃらのコマ出力(JSON)やチャパレを貼り付けると能力値と技能を上書き更新します" class="sc-band-input" style="height: 60px; resize: none; font-size: 12px;"></textarea>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label class="group-label">📌 通過シナリオ履歴の編集</label>
+        <div id="editHistoryContainer"></div>
+        <button class="action-btn" id="btnAddHistoryRow" style="background-color: #e0f2f1; color: #00695c; box-shadow: none; margin-bottom: 25px; padding:12px;">➕ 履歴を1件追加</button>
+
+        <button class="action-btn edit-mode" id="btnSaveEdit">💾 変更を保存して戻る</button>
+    </div>
+</div>
+
+<script src="edit_pc.js"></script>
+</body>
+</html>

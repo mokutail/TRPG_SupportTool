@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>募集画像作成ツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="recruit.css">
+</head>
+<body class="body">
+<div class="tool-header">
+    <h2 class="header-title">📢 募集画像作成</h2>
+    <button class="back-btn" onclick="window.location.href='../index.html'">🏠 戻る</button>
+</div>
+
+<div class="view">
+    <button class="warn-reset-band" id="resetRecruitBtnTop">選択をリセットする</button>
+
+    <form id="recruit-form">
+        <label class="group-label">🎨 カラー設定</label>
+        <div class="color-settings-grid">
+            <div class="color-item" onclick="openPicker('colorBg')"><label>背景</label><div class="color-box" id="preview-colorBg" style="background:#67afad;"></div></div>
+            <div class="color-item" onclick="openPicker('colorText')"><label>文字</label><div class="color-box" id="preview-colorText" style="background:#ffffff;"></div></div>
+            <div class="color-item" onclick="openPicker('colorCard')"><label>カード</label><div class="color-box" id="preview-colorCard" style="background:#ffffff;"></div></div>
+            <div class="color-item" onclick="openPicker('colorCardText')"><label>カード文字</label><div class="color-box" id="preview-colorCardText" style="background:#333333;"></div></div>
+            <div class="color-item" onclick="openPicker('colorTagBg')"><label>タグ背景</label><div class="color-box" id="preview-colorTagBg" style="background:#ffffff;"></div></div>
+            <div class="color-item" onclick="openPicker('colorTagText')"><label>タグ文字</label><div class="color-box" id="preview-colorTagText" style="background:#37a2ff;"></div></div>
+
+            <input type="hidden" id="colorBg" value="#67afad">
+            <input type="hidden" id="colorText" value="#ffffff">
+            <input type="hidden" id="colorCard" value="#ffffff">
+            <input type="hidden" id="colorCardText" value="#333333">
+            <input type="hidden" id="colorTagBg" value="#ffffff">
+            <input type="hidden" id="colorTagText" value="#37a2ff">
+        </div>
+
+        <label class="group-label">📋 募集タイプ</label>
+        <button type="button" id="typeSelectBtn" class="recruit-input select-trigger">PL募集</button>
+        <input type="hidden" id="recruitType" value="PL募集">
+
+        <label class="group-label">🎲 システム</label>
+        <div id="system-pill-container" class="check-grid">
+            <label class="pill-radio"><input type="radio" name="gameSystem" value="Call of Cthulhu 6th" checked><span>CoC 6th</span></label>
+            <label class="pill-radio"><input type="radio" name="gameSystem" value="Call of Cthulhu 7th"><span>CoC 7th</span></label>
+            <label class="pill-radio"><input type="radio" name="gameSystem" value="エモクロア"><span>エモクロア</span></label>
+            <label class="pill-radio"><input type="radio" name="gameSystem" value="マーダーミステリー"><span>マダミス</span></label>
+        </div>
+        <div class="add-input-group">
+            <input type="text" id="addSystemInput" class="recruit-input" placeholder="システムを追加">
+            <button type="button" class="add-btn" onclick="addCustomPill('system')">追加</button>
+        </div>
+        <div class="input-hint">追加した項目は長押しで削除できます</div>
+
+        <label class="group-label">📚 シナリオ名</label>
+        <input type="text" id="scenarioName" class="recruit-input" placeholder="タイトルを入力">
+
+        <div id="playerNumGroup" style="display:block;">
+            <label class="group-label">👤 募集人数</label>
+            <input type="text" id="playerNum" class="recruit-input" placeholder="例：3名">
+        </div>
+
+        <label class="group-label">📅 開催日程</label>
+        <input type="text" id="schedule" class="recruit-input" placeholder="例：3/20 21時">
+
+        <label class="group-label">⏳ 想定時間</label>
+        <input type="text" id="duration" class="recruit-input" placeholder="例：3〜4時間">
+
+        <label class="group-label">💻 形式</label>
+        <div class="check-grid">
+            <label class="pill-label"><input type="checkbox" name="format" value="ボイセ"><span>ボイセ</span></label>
+            <label class="pill-label"><input type="checkbox" name="format" value="半テキ"><span>半テキ</span></label>
+            <label class="pill-label"><input type="checkbox" name="format" value="完テキ"><span>完テキ</span></label>
+            <label class="pill-label"><input type="checkbox" name="format" value="置き卓"><span>置き卓</span></label>
+        </div>
+
+        <label class="group-label">🛠️ 使用ツール</label>
+        <div id="tool-pill-container" class="check-grid">
+            <label class="pill-label"><input type="checkbox" name="tool" value="Discord"><span>Discord</span></label>
+            <label class="pill-label"><input type="checkbox" name="tool" value="ココフォリア"><span>ココフォリア</span></label>
+            <label class="pill-label"><input type="checkbox" name="tool" value="Tekey"><span>Tekey</span></label>
+        </div>
+        <div class="add-input-group">
+            <input type="text" id="addToolInput" class="recruit-input" placeholder="ツールを追加">
+            <button type="button" class="add-btn" onclick="addCustomPill('tool')">追加</button>
+        </div>
+        <div class="input-hint">追加した項目は長押しで削除できます</div>
+
+        <label class="group-label">👥 募集範囲</label>
+        <div class="check-grid">
+            <label class="pill-label"><input type="checkbox" name="scope" value="相互フォロー"><span>相互</span></label>
+            <label class="pill-label"><input type="checkbox" name="scope" value="フォロワー"><span>フォロワー</span></label>
+            <label class="pill-label"><input type="checkbox" name="scope" value="誰でも"><span>誰でも</span></label>
+        </div>
+
+        <label class="group-label">📩 参加希望方法</label>
+        <div class="check-grid">
+            <label class="pill-label"><input type="checkbox" name="method" value="DM"><span>DM</span></label>
+            <label class="pill-label"><input type="checkbox" name="method" value="リプライ"><span>リプライ</span></label>
+            <label class="pill-label"><input type="checkbox" name="method" value="いいね"><span>いいね</span></label>
+        </div>
+
+        <label class="group-label">📝 備考</label>
+        <textarea id="recruitDetail" class="recruit-input" rows="4" placeholder="備考を自由に記入してください"></textarea>
+    </form>
+
+    <button class="warn-reset-band" id="resetRecruitBtnBottom">選択をリセットする</button>
+
+    <div class="preview-column" id="preview-section">
+        <div class="preview-header-label">プレビュー</div>
+        <canvas id="recruitCanvas"></canvas>
+        <button class="download-btn" id="downloadRecruitBtn">画像をダウンロード</button>
+    </div>
+</div>
+
+<div id="typeModal" class="type-modal-overlay">
+    <div class="type-modal-content">
+        <h3 class="modal-title">募集タイプを選択</h3>
+        <div class="modal-list">
+            <div class="modal-list-item" data-value="KP募集">KP募集</div>
+            <div class="modal-list-item" data-value="GM募集">GM募集</div>
+            <div class="modal-list-item" data-value="PL募集">PL募集</div>
+            <div class="modal-list-item" data-value="DL募集">DL募集</div>
+            <div class="modal-list-item" data-value="KPC募集">KPC募集</div>
+        </div>
+    </div>
+</div>
+
+<div id="colorModal" class="color-modal-overlay">
+    <div class="color-modal">
+        <h3 style="margin-top:0; color:#555; text-align:center; font-size:16px;">色を選択</h3>
+        <div class="color-picker-container">
+            <canvas id="colorWheel" width="220" height="220" style="border-radius:50%; cursor:crosshair; touch-action:none;"></canvas>
+            <canvas id="grayScaleBar" width="220" height="30" class="grayscale-bar"></canvas>
+        </div>
+        <div class="modal-hex-row">
+            <div class="modal-preview" id="modalPreview"></div>
+            <input type="text" id="modalHexInput" maxlength="7" placeholder="#FFFFFF">
+        </div>
+        <div class="modal-palette-section">
+            <div style="font-size:11px; color:#999; margin-bottom:8px; text-align:center;">長押しでお気に入りに登録</div>
+            <div class="palette-grid" id="paletteGrid"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn-cancel" id="btnModalCancel">中止</button>
+            <button class="modal-btn-apply" id="btnModalApply">決定</button>
+        </div>
+    </div>
+</div>
+
+<div id="customConfirmModal" class="color-modal-overlay">
+    <div class="color-modal">
+        <h3 id="confirmMessage" style="margin-top:0; color:#555; text-align:center; font-size:16px; line-height:1.6;"></h3>
+        <div class="modal-actions" style="margin-top: 25px;">
+            <button class="modal-btn-cancel" id="btnConfirmCancel">キャンセル</button>
+            <button class="modal-btn-apply" id="btnConfirmOK">実行する</button>
+        </div>
+    </div>
+</div>
+
+<script src="recruit.js"></script>
+</body>
+</html>

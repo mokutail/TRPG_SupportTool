@@ -1,0 +1,118 @@
+/* 地雷チェックツール専用スタイル */
+
+/* --- セクション見出し（横に色の線を入れる） --- */
+.group-label {
+    display: block;
+    font-size: 15px;
+    font-weight: bold;
+    color: #76ADAF;
+    margin-bottom: 15px;
+    padding-left: 12px;
+    border-left: 5px solid #76ADAF; /* ★ この線が見栄えの決め手でした */
+    line-height: 1.2;
+}
+
+/* --- 入力欄とリセットボタン（共通の帯デザイン） --- */
+.warn-band-input, .warn-reset-band {
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #333;
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    margin-bottom: 12px;
+    font-family: inherit;
+    text-align: left;
+}
+
+/* リセットボタン固有の設定（帯スタイル） */
+.warn-reset-band {
+    cursor: pointer;
+    color: #888;
+    text-align: center; /* ボタンなので文字は中央 */
+    margin-bottom: 25px;
+}
+
+.warn-band-input:focus, .warn-reset-band:active {
+    border-color: #76ADAF;
+    background-color: #f0f7f7;
+    color: #00695c;
+    box-shadow: 0 4px 10px rgba(118, 173, 175, 0.15);
+}
+
+/* --- チェックリストの項目 --- */
+.check-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 30px;
+    padding-left: 5px;
+}
+
+.check-list-label {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #fff;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.check-list-label input {
+    margin-right: 12px;
+    transform: scale(1.2);
+    accent-color: #76ADAF;
+}
+
+/* --- プレビューエリア --- */
+.preview-column {
+    padding: 30px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #fdfdfd;
+    border-radius: 20px;
+    border: 1px solid #eee;
+}
+
+.preview-header-label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #76ADAF;
+    margin-bottom: 20px;
+}
+
+canvas {
+    width: 100% !important;
+    max-width: 360px;
+    height: auto !important;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+}
+
+.download-btn {
+    width: 90%;
+    max-width: 320px;
+    padding: 18px;
+    background-color: #76ADAF;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 17px;
+    box-shadow: 0 8px 20px rgba(118, 173, 175, 0.3);
+    transition: 0.2s;
+}
+
+.download-btn:active {
+    transform: scale(0.95);
+}

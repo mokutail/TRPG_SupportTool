@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>所持シナリオ管理ツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="scenario_poss.css">
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">📚 所持シナリオ管理</span>
+    <button class="back-btn" onclick="location.href='../index.html'">🏠 戻る</button>
+</h2>
+
+<div class="view">
+    <div class="system-tabs" id="systemTabs"></div>
+
+    <div class="input-group">
+        <div class="filter-toggle-btn" id="filterToggleBtn">
+            🔍 シナリオを検索・絞り込み <span class="arrow">▼</span>
+        </div>
+        <div class="filter-box" id="filterBox">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="filterTitle" placeholder="シナリオ名で検索" class="sc-band-input">
+                <input type="text" id="filterMemo" placeholder="メモ/タグで検索" class="sc-band-input">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div class="custom-select-wrapper" id="filterStatusWrapper">
+                    <div class="select-display" id="filterStatusDisplay">状態</div>
+                    <div class="select-options" id="filterStatusOptions">
+                        <div class="option-item" data-value="すべて">状態</div>
+                        <div class="option-item" data-value="未読 (積読)">未読 (積読)</div>
+                        <div class="option-item" data-value="読了 (準備中)">読了 (準備中)</div>
+                        <div class="option-item" data-value="回せる (準備完了)">回せる (準備完了)</div>
+                        <div class="option-item" data-value="PL通過済">PL通過済</div>
+                    </div>
+                </div>
+                <input type="hidden" id="filterStatusHidden" value="すべて">
+
+                <input type="text" id="filterTime" placeholder="時間で検索" class="sc-band-input">
+            </div>
+            <button id="btnResetFilter">🔄 絞り込みをリセット</button>
+            <div class="hit-count-display">該当件数: <strong id="hitCount">0</strong> 件</div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label class="group-label" id="formTitleLabel">🆕 所持シナリオの登録</label>
+
+        <div style="margin-bottom:12px;">
+            <input type="text" id="possTitle" placeholder="シナリオ名" class="sc-band-input">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <input type="text" id="possPlayers" placeholder="人数 (例: 2)" class="sc-band-input">
+            <input type="text" id="possTime" placeholder="時間 (例: 3〜4)" class="sc-band-input">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <div class="custom-select-wrapper" id="possStatusWrapper">
+                <div class="select-display" id="possStatusDisplay">未読 (積読)</div>
+                <div class="select-options" id="possStatusOptions">
+                    <div class="option-item" data-value="未読 (積読)">未読 (積読)</div>
+                    <div class="option-item" data-value="読了 (準備中)">読了 (準備中)</div>
+                    <div class="option-item" data-value="回せる (準備完了)">回せる (準備完了)</div>
+                    <div class="option-item" data-value="PL通過済">PL通過済</div>
+                </div>
+            </div>
+            <input type="hidden" id="possStatusHidden" value="未読 (積読)">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="url" id="possUrl" placeholder="Boothや配布元のURL (任意)" class="sc-band-input">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="url" id="possCcfoliaUrl" placeholder="ココフォリアの部屋URL (任意)" class="sc-band-input">
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <input type="text" id="possMemo" placeholder="メモ (例: HOあり, 推奨技能: 目星)" class="sc-band-input">
+        </div>
+
+        <button class="action-btn" id="btnAddPoss">本棚に追加</button>
+    </div>
+
+    <div class="input-group">
+        <label class="group-label">📚 所持シナリオ一覧</label>
+        <div id="possListContainer"></div>
+    </div>
+</div>
+
+<script src="scenario_poss.js"></script>
+</body>
+</html>

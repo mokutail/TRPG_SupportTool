@@ -1,0 +1,275 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const listContainer = document.getElementById('possListContainer');
+    const hitCountDisplay = document.getElementById('hitCount');
+    let possData = JSON.parse(localStorage.getItem('trpg_scenario_poss_v1')) || [];
+    let editingId = null;
+
+    // ★ 指定されたシステム配列
+    const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
+    let currentSystemFilter = "すべて";
+
+    // --- カスタムプルダウンの共通設定 ---
+    function setupSelect(displayId, optionsId, hiddenId, onChange = null) {
+        const display = document.getElementById(displayId);
+        const options = document.getElementById(optionsId);
+        const hidden = document.getElementById(hiddenId);
+        if(!display) return;
+
+        display.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.select-options').forEach(opt => {
+                if (opt !== options) opt.classList.remove('active');
+            });
+            options.classList.toggle('active');
+        });
+
+        options.querySelectorAll('.option-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const val = item.getAttribute('data-value');
+                display.innerText = item.innerText;
+                hidden.value = val;
+                options.classList.remove('active');
+                if (onChange) onChange();
+            });
+        });
+    }
+
+    setupSelect('filterStatusDisplay', 'filterStatusOptions', 'filterStatusHidden', renderList);
+    setupSelect('possStatusDisplay', 'possStatusOptions', 'possStatusHidden');
+
+    window.addEventListener('click', () => {
+        document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
+    });
+
+    // --- システムタブ生成 ---
+    function updateFormTitle() {
+        const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
+        document.getElementById('formTitleLabel').innerHTML = `🆕 所持シナリオの登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
+    }
+
+    function renderSystemTabs() {
+        const container = document.getElementById('systemTabs');
+        container.innerHTML = `<button class="sys-tab-btn active" data-sys="すべて">すべて</button>`;
+        systems.forEach(sys => {
+            container.innerHTML += `<button class="sys-tab-btn" data-sys="${sys}">${sys}</button>`;
+        });
+
+        container.querySelectorAll('.sys-tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                container.querySelectorAll('.sys-tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentSystemFilter = e.target.getAttribute('data-sys');
+                updateFormTitle();
+                renderList();
+            });
+        });
+        updateFormTitle();
+    }
+
+    // --- フィルター制御 ---
+    document.getElementById('filterToggleBtn').addEventListener('click', function() {
+        const box = document.getElementById('filterBox');
+        if (box.style.display === 'none' || box.style.display === '') {
+            box.style.display = 'block'; this.classList.add('open');
+        } else {
+            box.style.display = 'none'; this.classList.remove('open');
+        }
+    });
+
+    // ★ 修正：時間検索(filterTime)を入力時に監視するように追加！
+    ['filterTitle', 'filterMemo', 'filterTime'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', renderList);
+    });
+
+    document.getElementById('btnResetFilter').addEventListener('click', () => {
+        if(document.getElementById('filterTitle')) document.getElementById('filterTitle').value = '';
+        if(document.getElementById('filterMemo')) document.getElementById('filterMemo').value = '';
+        if(document.getElementById('filterTime')) document.getElementById('filterTime').value = '';
+
+        document.getElementById('filterStatusHidden').value = 'すべて';
+        document.getElementById('filterStatusDisplay').innerText = '状態';
+        renderList();
+    });
+
+    // --- バッジの色判定 ---
+    function getStatusClass(status) {
+        if (status.includes('未読')) return 'unread';
+        if (status.includes('読了')) return 'read';
+        if (status.includes('回せる')) return 'ready';
+        if (status.includes('PL通過')) return 'played';
+        return '';
+    }
+
+    // --- リスト描画 ---
+    function renderList() {
+        listContainer.innerHTML = '';
+
+        const fTitle = document.getElementById('filterTitle') ? document.getElementById('filterTitle').value.trim().toLowerCase() : '';
+        const fMemo = document.getElementById('filterMemo') ? document.getElementById('filterMemo').value.trim().toLowerCase() : '';
+        const fTime = document.getElementById('filterTime') ? document.getElementById('filterTime').value.trim().toLowerCase() : '';
+        const fStatus = document.getElementById('filterStatusHidden').value;
+        let hitCount = 0;
+
+        if (possData.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-weight:bold;">登録されたシナリオはありません</div>';
+            hitCountDisplay.innerText = "0"; return;
+        }
+
+        possData.forEach((item) => {
+            // システムで絞り込み
+            if (currentSystemFilter !== 'すべて' && item.system !== currentSystemFilter) return;
+
+            if (fStatus !== 'すべて' && item.status !== fStatus) return;
+            if (fTitle !== '' && (!item.title || !item.title.toLowerCase().includes(fTitle))) return;
+            if (fMemo !== '' && (!item.memo || !item.memo.toLowerCase().includes(fMemo))) return;
+
+            // ★ 時間の範囲検索機能
+            if (fTime !== '') {
+                if (!item.time) return;
+
+                let isMatch = item.time.toLowerCase().includes(fTime);
+                const searchNumMatch = fTime.match(/(\d+(?:\.\d+)?)/);
+
+                if (!isMatch && searchNumMatch) {
+                    const searchNum = parseFloat(searchNumMatch[1]);
+                    const rangeMatch = item.time.match(/(\d+(?:\.\d+)?)\s*[〜~-]\s*(\d+(?:\.\d+)?)/);
+
+                    if (rangeMatch) {
+                        const min = parseFloat(rangeMatch[1]);
+                        const max = parseFloat(rangeMatch[2]);
+                        if (searchNum >= min && searchNum <= max) {
+                            isMatch = true;
+                        }
+                    } else {
+                        const singleMatch = item.time.match(/(\d+(?:\.\d+)?)/);
+                        if (singleMatch) {
+                            const val = parseFloat(singleMatch[1]);
+                            if (searchNum === val) {
+                                isMatch = true;
+                            }
+                        }
+                    }
+                }
+                if (!isMatch) return;
+            }
+
+            hitCount++;
+
+            const div = document.createElement('div');
+            div.className = 'list-item';
+
+            const badgeClass = getStatusClass(item.status);
+
+            let linksHtml = '';
+            if (item.url) {
+                linksHtml += `<a href="${item.url}" target="_blank" style="display:inline-block; background:#ffe0b2; color:#e65100; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🛍️ 配布元</a>`;
+            }
+            if (item.ccfoliaUrl) {
+                linksHtml += `<a href="${item.ccfoliaUrl}" target="_blank" style="display:inline-block; background:#c8e6c9; color:#2e7d32; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🎲 ココフォリア</a>`;
+            }
+            const linksContainer = linksHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">${linksHtml}</div>` : '';
+
+            const infoHtml = (item.players || item.time) ? `<div class="item-info-row"><span>👥 ${item.players || '未定'}</span><span>⏳ ${item.time || '未定'}</span></div>` : '';
+            const memoHtml = item.memo ? `<div style="font-size:12px; color:#777; background:#f8f9fa; padding:8px; border-radius:8px; margin-top:8px;">📝 ${item.memo}</div>` : '';
+
+            div.innerHTML = `
+                <div class="item-actions-corner">
+                    <button class="corner-btn edit" onclick="editItem('${item.id}')">修正</button>
+                    <button class="corner-btn delete" onclick="deleteItem('${item.id}')">削除</button>
+                </div>
+
+                <span class="status-badge ${badgeClass}">${item.status}</span>
+                <span class="sys-badge">${item.system || 'CoC 6th'}</span>
+
+                <div class="item-title">${item.title}</div>
+                ${infoHtml}
+                ${memoHtml}
+                ${linksContainer}
+            `;
+            listContainer.appendChild(div);
+        });
+
+        hitCountDisplay.innerText = hitCount;
+    }
+
+    // --- 追加・更新 ---
+    document.getElementById('btnAddPoss').addEventListener('click', () => {
+        const title = document.getElementById('possTitle').value.trim();
+        const status = document.getElementById('possStatusHidden').value;
+        let players = document.getElementById('possPlayers').value.trim();
+        let time = document.getElementById('possTime').value.trim();
+        const url = document.getElementById('possUrl').value.trim();
+        const ccfoliaUrl = document.getElementById('possCcfoliaUrl').value.trim();
+        const memo = document.getElementById('possMemo').value.trim();
+
+        if (!title) { alert('シナリオ名を入力してください'); return; }
+
+        if (players && /[0-9０-９]$/.test(players) && !players.includes('人')) players += 'PL';
+        if (time && /[0-9０-９]$/.test(time) && !time.includes('分')) time += '時間';
+
+        if (editingId) {
+            const index = possData.findIndex(d => d.id === editingId);
+            if (index > -1) {
+                possData[index] = { ...possData[index], title, status, players, time, url, ccfoliaUrl, memo, system: possData[index].system || 'CoC 6th' };
+            }
+            editingId = null;
+            document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
+            const btn = document.getElementById('btnAddPoss');
+            btn.innerText = '本棚に追加';
+            btn.classList.remove('edit-mode');
+        } else {
+            const system = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
+            possData.unshift({
+                id: Date.now().toString(),
+                system, title, status, players, time, url, ccfoliaUrl, memo
+            });
+        }
+
+        localStorage.setItem('trpg_scenario_poss_v1', JSON.stringify(possData));
+        resetForm();
+        renderList();
+    });
+
+    window.editItem = (id) => {
+        const item = possData.find(d => d.id === id);
+        if(!item) return;
+        editingId = id;
+
+        document.getElementById('possTitle').value = item.title || '';
+        document.getElementById('possPlayers').value = item.players ? item.players.replace(/PL$/, '') : '';
+        document.getElementById('possTime').value = item.time ? item.time.replace(/時間$/, '') : '';
+        document.getElementById('possUrl').value = item.url || '';
+        document.getElementById('possCcfoliaUrl').value = item.ccfoliaUrl || '';
+        document.getElementById('possMemo').value = item.memo || '';
+
+        document.getElementById('possStatusHidden').value = item.status || '未読 (積読)';
+        document.getElementById('possStatusDisplay').innerText = item.status || '未読 (積読)';
+
+        document.getElementById('formTitleLabel').innerText = `✍️ シナリオ情報の修正 (${item.system || 'CoC 6th'})`;
+        const btn = document.getElementById('btnAddPoss');
+        btn.innerText = '情報を更新する';
+        btn.classList.add('edit-mode');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteItem = (id) => {
+        if (confirm('このシナリオを本棚から削除しますか？')) {
+            possData = possData.filter(d => d.id !== id);
+            localStorage.setItem('trpg_scenario_poss_v1', JSON.stringify(possData));
+            renderList();
+        }
+    };
+
+    function resetForm() {
+        document.getElementById('possTitle').value = '';
+        document.getElementById('possPlayers').value = '';
+        document.getElementById('possTime').value = '';
+        document.getElementById('possUrl').value = '';
+        document.getElementById('possCcfoliaUrl').value = '';
+        document.getElementById('possMemo').value = '';
+    }
+
+    renderSystemTabs();
+    renderList();
+});

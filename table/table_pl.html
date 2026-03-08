@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>探索者管理ツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="table.css">
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">🎲 探索者(PC)管理</span>
+    <button class="back-btn" onclick="location.href='../index.html'">🏠 戻る</button>
+</h2>
+
+<div id="table-view" class="view">
+    <div class="system-tabs" id="systemTabs"></div>
+
+    <div class="input-group">
+        <div class="filter-toggle-btn" id="filterToggleBtn">
+            🔍 探索者を検索・絞り込み <span class="arrow">▼</span>
+        </div>
+        <div class="filter-box" id="filterBox">
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input type="text" id="filterName" placeholder="PC名で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterScenario" placeholder="シナリオ名で検索" class="sc-band-input" style="flex:1;">
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <select id="filterGender" class="sc-band-select" style="flex:1;">
+                    <option value="すべて">すべて</option>
+                </select>
+                <select id="filterStatus" class="sc-band-select" style="flex:1;">
+                    <option value="すべて">すべて</option>
+                    <option value="生還">生還</option>
+                    <option value="ロスト">ロスト</option>
+                    <option value="継続不可">継続不可</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
+            </div>
+            <button id="btnResetFilter">🔄 絞り込みをリセット</button>
+            <div class="hit-count-display">該当件数: <strong id="pcHitCount">0</strong> 件</div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label class="group-label" id="formTitleLabel">👤 新規探索者の登録</label>
+
+        <div style="display: grid; grid-template-columns: 90px 1fr; gap: 15px; margin-bottom: 12px;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+                <div class="image-upload-wrapper" id="imageUploadWrapper">
+                    <div id="imagePreview" class="image-preview"><span id="imagePreviewText">顔写真<br>(タップ)</span></div>
+                    <input type="file" id="pcImage" accept="image/*" style="display:none;">
+                </div>
+                <button type="button" class="clear-img-btn" id="btnClearImage" style="display:none;">クリア</button>
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:center;">
+                <input type="text" id="pcName" placeholder="PC名 (探索者名)" class="sc-band-input" style="height: 90px; font-size: 18px;">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="custom-select-wrapper" id="pcGenderWrapper">
+                <div class="select-display" id="pcGenderDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">性別</div>
+                <div class="select-options" id="pcGenderOptions"></div>
+            </div>
+            <input type="hidden" id="pcGenderHidden" value="">
+
+            <div class="custom-select-wrapper" id="pcAgeWrapper">
+                <div class="select-display" id="pcAgeDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">年齢</div>
+                <div class="select-options" id="pcAgeOptions"></div>
+            </div>
+            <input type="hidden" id="pcAgeHidden" value="">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="custom-select-wrapper" id="pcRaceWrapper">
+                <div class="select-display" id="pcRaceDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">種族</div>
+                <div class="select-options" id="pcRaceOptions"></div>
+            </div>
+            <input type="hidden" id="pcRaceHidden" value="">
+
+            <div class="custom-select-wrapper" id="pcJobWrapper">
+                <div class="select-display" id="pcJobDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">職業</div>
+                <div class="select-options" id="pcJobOptions"></div>
+            </div>
+            <input type="hidden" id="pcJobHidden" value="">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="text" id="pcTags" placeholder="タグ (例: 秘匿, 医者)" class="sc-band-input" style="padding: 12px 16px;">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="url" id="pcUrl" placeholder="いあきゃら等のURL(任意)" class="sc-band-input">
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <textarea id="pcIachara" placeholder="▼ いあきゃらのコマ出力(JSON)やチャパレをコピペすると、能力値と技能を自動で読み込みます" class="sc-band-input" style="height: 60px; resize: none; font-size: 12px;"></textarea>
+        </div>
+
+        <div id="initialHistorySection">
+            <label style="font-size:12px; color:#888; font-weight:bold; margin-bottom:6px; display:block;">▼ 初回通過シナリオ</label>
+            <div style="background:#f8f9fa; padding:15px; border-radius:12px; border:1px solid #eee; margin-bottom:20px;">
+                <input type="text" id="histScenario" placeholder="シナリオ名" class="sc-band-input" style="margin-bottom:10px;">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="histHO" placeholder="HO (任意)" class="sc-band-input" style="flex:1;">
+                    <input type="text" id="histDate" placeholder="通過日" class="sc-band-input" style="flex:1;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
+                </div>
+                <div class="custom-select-wrapper" id="histStatusWrapper">
+                    <div class="select-display" id="histStatusDisplay">生還</div>
+                    <div class="select-options" id="histStatusOptions">
+                        <div class="option-item" data-value="生還">生還</div>
+                        <div class="option-item" data-value="ロスト">ロスト</div>
+                        <div class="option-item" data-value="継続不可">継続不可</div>
+                    </div>
+                </div>
+                <input type="hidden" id="histStatusHidden" value="生還">
+            </div>
+        </div>
+
+        <button class="action-btn" id="btnAddPc">リストに追加</button>
+    </div>
+
+    <div class="input-group">
+        <label class="group-label">📊 探索者リスト</label>
+        <div id="pcListContainer"></div>
+    </div>
+</div>
+
+<div id="continueModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#333; font-size:16px;">🚀 継続シナリオの追加</h3>
+        <p id="continuePcName" style="font-size:14px; color:#76ADAF; font-weight:bold; margin-bottom:15px;"></p>
+        <input type="text" id="contScenario" placeholder="シナリオ名" class="sc-band-input" style="margin-bottom:10px;">
+        <input type="text" id="contDate" placeholder="通過日" class="sc-band-input" style="margin-bottom:10px;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
+        <input type="text" id="contHO" placeholder="HO (任意)" class="sc-band-input" style="margin-bottom:10px;">
+        <div class="custom-select-wrapper" id="contStatusWrapper" style="margin-bottom:10px;">
+            <div class="select-display" id="contStatusDisplay">生還</div>
+            <div class="select-options" id="contStatusOptions">
+                <div class="option-item" data-value="生還">生還</div>
+                <div class="option-item" data-value="ロスト">ロスト</div>
+                <div class="option-item" data-value="継続不可">継続不可</div>
+            </div>
+        </div>
+        <input type="hidden" id="contStatusHidden" value="生還">
+        <div class="modal-actions">
+            <button class="modal-btn-cancel" onclick="closeContinueModal()">キャンセル</button>
+            <button class="modal-btn-apply" onclick="saveContinueHistory()">追加する</button>
+        </div>
+    </div>
+</div>
+
+<script src="table_pl.js"></script>
+</body>
+</html>

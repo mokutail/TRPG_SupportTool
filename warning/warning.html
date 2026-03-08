@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>地雷チェックツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="warning.css">
+</head>
+<body class="body">
+<div class="tool-header">
+    <h2 class="header-title">⚠️ 地雷チェック</h2>
+    <button class="back-btn" onclick="window.location.href='../index.html'">🏠 戻る</button>
+</div>
+
+<div id="warning-view" class="view">
+    <div class="main-container">
+        <button class="warn-reset-band" id="resetWarningBtnTop">選択をリセットする</button>
+
+        <div class="input-group">
+            <label class="group-label">📖 シナリオ名</label>
+            <input type="text" id="warnTitle" placeholder="タイトルを入力" class="warn-band-input">
+        </div>
+
+        <div id="warning-categories-container"></div>
+
+        <button class="warn-reset-band" id="resetWarningBtn">選択をリセットする</button>
+
+        <div class="preview-column">
+            <div class="preview-header-label">プレビュー</div>
+            <canvas id="warningCanvas"></canvas>
+            <button class="download-btn" id="downloadWarningBtn">画像をダウンロード</button>
+        </div>
+    </div>
+</div>
+
+<div id="customConfirmModal" class="color-modal-overlay">
+    <div class="color-modal">
+        <h3 id="confirmMessage" style="margin-top:0; color:#555; text-align:center; font-size:16px; line-height:1.6;"></h3>
+        <div class="modal-actions" style="margin-top: 25px;">
+            <button class="modal-btn-cancel" id="btnConfirmCancel">キャンセル</button>
+            <button class="modal-btn-apply" id="btnConfirmOK">実行する</button>
+        </div>
+    </div>
+</div>
+
+<script src="warning.js"></script>
+</body>
+</html>

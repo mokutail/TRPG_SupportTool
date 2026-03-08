@@ -1,0 +1,148 @@
+/* 募集画像作成ツール専用：recruit.css */
+
+* { box-sizing: border-box; }
+
+.view { width: 100%; padding: 0 15px; max-width: 100vw; }
+
+.group-label {
+    display: block; font-size: 15px; font-weight: bold; color: #76ADAF;
+    margin-bottom: 12px; padding-left: 10px; border-left: 5px solid #76ADAF; line-height: 1.2;
+}
+
+.input-hint { font-size: 11px; color: #aaa; margin-top: -15px; margin-bottom: 20px; padding-left: 5px; }
+
+/* --- ★ 修正：青いハイライトの排除 --- */
+.color-settings-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    background: #fff; padding: 15px; border-radius: 15px; border: 1px solid #eee; margin-bottom: 25px;
+}
+.color-item {
+    display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666;
+    -webkit-tap-highlight-color: transparent; /* 青い四角を消す */
+}
+.color-box {
+    width: 60px; height: 32px; border: 2px solid #eee; border-radius: 8px; cursor: pointer; transition: transform 0.1s;
+    -webkit-tap-highlight-color: transparent; /* 青い四角を消す */
+}
+.color-item:active .color-box { transform: scale(0.95); }
+
+.recruit-input {
+    width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 15px; outline: none; margin-bottom: 20px; background-color: #fff;
+    -webkit-appearance: none;
+}
+.recruit-input:focus { border-color: #76ADAF; background-color: #f0f7f7; }
+
+.select-trigger {
+    text-align: left; background: #fff url('data:image/svg+xml;charset=utf8,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23777"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 15px center;
+    background-size: 20px; cursor: pointer; border: 2px solid #eee;
+    -webkit-tap-highlight-color: transparent; /* 青い四角を消す */
+}
+
+.add-input-group { display: flex; gap: 8px; margin-bottom: 20px; margin-top: -10px; align-items: center; }
+.add-input-group .recruit-input { flex: 1; margin-bottom: 0; }
+.add-btn { flex-shrink: 0; white-space: nowrap; padding: 0 25px; background: #76ADAF; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; height: 48px; -webkit-tap-highlight-color: transparent; }
+
+/* 募集タイプモーダル */
+.type-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center;
+    z-index: 9999 !important;
+}
+
+.type-modal-content {
+    background: #fff; width: 85%; max-width: 320px; border-radius: 20px; padding: 25px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2); animation: modalFade 0.2s ease-out;
+}
+
+@keyframes modalFade { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+.modal-title { margin: 0 0 20px 0; text-align: center; color: #555; font-size: 18px; }
+
+.modal-list { display: flex; flex-direction: column; gap: 12px; }
+.modal-list-item {
+    padding: 16px; background: #f8f9fa; border-radius: 14px; text-align: center; font-weight: bold; color: #555; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: 0.1s;
+}
+.modal-list-item:active { background: #e0f2f1; color: #76ADAF; transform: scale(0.97); }
+
+.check-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.pill-label, .pill-radio { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pill-label input, .pill-radio input { display: none; }
+.pill-label span, .pill-radio span { display: inline-block; padding: 8px 18px; background-color: #f0f0f0; color: #666; border-radius: 20px; font-size: 14px; font-weight: bold; transition: all 0.1s; }
+.pill-label input:checked + span, .pill-radio input:checked + span { background-color: #76ADAF; color: white; box-shadow: 0 4px 8px rgba(118, 173, 175, 0.3); }
+
+/* --- ★ 修正：地雷チェック完全互換UI --- */
+.warn-reset-band {
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #888;
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    margin-bottom: 25px;
+    font-family: inherit;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent; /* 青い四角を消す */
+}
+
+.warn-reset-band:active {
+    border-color: #76ADAF;
+    background-color: #f0f7f7;
+    color: #00695c;
+    box-shadow: 0 4px 10px rgba(118, 173, 175, 0.15);
+}
+
+.preview-column {
+    padding: 30px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #fdfdfd;
+    border-radius: 20px;
+    border: 1px solid #eee;
+    margin-bottom: 30px;
+}
+
+.preview-header-label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #76ADAF;
+    margin-bottom: 20px;
+}
+
+canvas {
+    width: 100% !important;
+    max-width: 500px;
+    height: auto !important;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+    display: block;
+}
+
+.download-btn {
+    width: 90%;
+    max-width: 320px;
+    padding: 18px;
+    background-color: #76ADAF;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 17px;
+    box-shadow: 0 8px 20px rgba(118, 173, 175, 0.3);
+    transition: 0.2s;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent; /* 青い四角を消す */
+}
+
+.download-btn:active {
+    transform: scale(0.95);
+}

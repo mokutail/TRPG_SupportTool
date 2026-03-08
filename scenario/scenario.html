@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>シナリオ管理ツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="scenario.css">
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">📚 自作シナリオ管理</span>
+    <button class="back-btn" onclick="location.href='../index.html'">🏠 戻る</button>
+</h2>
+
+<div id="scenario-view" class="view">
+    <div class="input-column">
+
+        <div class="system-tabs" id="systemTabs"></div>
+
+        <div class="input-group">
+            <div class="filter-toggle-btn" id="filterToggleBtn">
+                🔍 シナリオを検索・絞り込み <span class="arrow">▼</span>
+            </div>
+            <div class="filter-box" id="filterBox">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="filterScenario" placeholder="シナリオ名で検索" class="sc-band-input">
+                    <input type="text" id="filterPlayerNum" placeholder="人数で検索" class="sc-band-input">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="filterDuration" placeholder="時間で検索" class="sc-band-input">
+                    <div class="custom-select-wrapper" id="filterStatusWrapper">
+                        <div class="select-display" id="filterStatusDisplay">状態</div>
+                        <div class="select-options" id="filterStatusOptions">
+                            <div class="option-item" data-value="すべて">すべて</div>
+                            <div class="option-item" data-value="執筆中">執筆中</div>
+                            <div class="option-item" data-value="テストプレイ中">テストプレイ中</div>
+                            <div class="option-item" data-value="頒布中">頒布中</div>
+                            <div class="option-item" data-value="頒布停止中">頒布停止中</div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="filterStatusHidden" value="すべて">
+
+                <button id="btnResetFilter">🔄 絞り込みをリセット</button>
+                <div class="hit-count-display">該当件数: <strong id="scHitCount">0</strong> 件</div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="group-label" id="formTitleLabel">🆕 新規シナリオ登録</label>
+
+            <div style="margin-bottom:12px;">
+                <input type="text" id="scTitle" placeholder="シナリオ名" class="sc-band-input">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <input type="text" id="scPlayerNum" placeholder="人数" class="sc-band-input">
+                <input type="text" id="scDuration" placeholder="時間" class="sc-band-input">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="custom-select-wrapper" id="scStatusWrapper">
+                    <div class="select-display" id="scStatusDisplay">執筆中</div>
+                    <div class="select-options" id="scStatusOptions">
+                        <div class="option-item" data-value="執筆中">執筆中</div>
+                        <div class="option-item" data-value="テストプレイ中">テストプレイ中</div>
+                        <div class="option-item" data-value="頒布中">頒布中</div>
+                        <div class="option-item" data-value="頒布停止中">頒布停止中</div>
+                    </div>
+                </div>
+                <input type="number" id="scZin" placeholder="何陣目？" class="sc-band-input">
+            </div>
+            <input type="hidden" id="scStatusHidden" value="執筆中">
+
+            <div style="margin-bottom:12px;">
+                <input type="url" id="scDocUrl" placeholder="資料/PDF/ドキュメント URL (任意)" class="sc-band-input">
+            </div>
+            <div style="margin-bottom:12px;">
+                <input type="url" id="scBoothUrl" placeholder="Booth URL (任意)" class="sc-band-input">
+            </div>
+            <div style="margin-bottom:12px;">
+                <input type="url" id="scCcfoliaUrl" placeholder="ココフォリア URL (任意)" class="sc-band-input">
+            </div>
+
+            <button class="action-btn" id="btnAddScenario">作品リストに追加</button>
+        </div>
+
+        <div class="input-group">
+            <label class="group-label">📊 管理リスト</label>
+            <div id="scList"></div>
+        </div>
+    </div>
+</div>
+
+<script src="scenario.js"></script>
+</body>
+</html>
