@@ -1,4 +1,77 @@
+// ==========================================
+// ★ Firebaseの初期設定（司令官の鍵に書き換えてください！）
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};
+
+// Firebaseの起動
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ログイン状態を管理する変数
+let currentUser = null;
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ==========================================
+    // ★ ログイン・ログアウトの処理
+    // ==========================================
+    const authBtn = document.getElementById('authBtn');
+    const userInfoArea = document.getElementById('userInfoArea');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+
+    // ログイン状態の変化を監視する機能
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // ログイン成功時
+            currentUser = user;
+            authBtn.innerText = "🚪 ログアウト";
+            authBtn.style.backgroundColor = "#ffebee"; // 薄い赤
+            authBtn.style.color = "#c62828";
+
+            userInfoArea.style.display = "block";
+            userNameDisplay.innerText = user.displayName || "名無し";
+
+            console.log("ログイン成功！ユーザーID:", user.uid);
+        } else {
+            // ログアウト時
+            currentUser = null;
+            authBtn.innerText = "👤 ログイン";
+            authBtn.style.backgroundColor = "#e3f2fd"; // 薄い青
+            authBtn.style.color = "#0277bd";
+
+            userInfoArea.style.display = "none";
+
+            console.log("ログアウトしました");
+        }
+    });
+
+    // ボタンを押した時のアクション
+    authBtn.addEventListener('click', () => {
+        if (currentUser) {
+            // ログイン中ならログアウトする
+            if (confirm("ログアウトしますか？")) {
+                auth.signOut();
+            }
+        } else {
+            // ログアウト中ならGoogleログイン画面を出す
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch((error) => {
+                console.error("ログインエラー:", error);
+                alert("ログインに失敗しました。");
+            });
+        }
+    });
+
+    // ==========================================
+    // 以下、司令官が作ったメニュー管理コード（そのまま）
+    // ==========================================
     const homeView = document.getElementById('home-view');
     const editToggle = document.getElementById('toggleEditMode');
     const settingsPanel = document.getElementById('settings-panel');
@@ -7,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPreview = document.getElementById('modalPreview');
     const modalHexInput = document.getElementById('modalHexInput');
 
-    // ★ 修正：ここに「行きたいシナリオ一覧」を追加しました！カラーは可愛いピンク系(#E91E63)にしています
     const defaultMenu = [
         { id: 'recruit', label: '📢 募集画像シート作成', color: '#5a5faa', href: 'recruit/recruit.html' },
         { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#5a5faa', href: 'warning/warning.html' },

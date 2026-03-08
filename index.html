@@ -10,7 +10,15 @@
 <body class="body">
 <div class="top-header">
     <h1 class="header-title">🎲 TRPGサポートツール</h1>
-    <button id="toggleEditMode" class="setting-btn">⚙️ 設定</button>
+
+    <div style="display:flex; gap:8px;">
+        <button id="authBtn" class="setting-btn" style="background-color:#e3f2fd; color:#0277bd;">👤 ログイン</button>
+        <button id="toggleEditMode" class="setting-btn">⚙️ 設定</button>
+    </div>
+</div>
+
+<div id="userInfoArea" style="display:none; text-align:center; padding: 10px; background: #e8f5e9; color: #2e7d32; font-weight: bold; font-size: 13px; margin-bottom: 15px;">
+    現在 <span id="userNameDisplay"></span> としてログイン中
 </div>
 
 <div class="view main-menu">
@@ -63,6 +71,10 @@
         </div>
     </div>
 </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
 <script src="index.js"></script>
 </body>
