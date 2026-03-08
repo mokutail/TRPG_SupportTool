@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TRPG Support Tool</title>
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="body">
+<div class="top-header">
+    <h1 class="header-title">🎲 TRPGサポートツール</h1>
+    <button id="toggleEditMode" class="setting-btn">⚙️ 設定</button>
+</div>
+
+<div class="view main-menu">
+    <div id="home-view" class="menu-grid">
+    </div>
+
+    <div id="settings-panel" class="settings-panel" style="display:none;">
+        <label class="group-label">🛠️ メニュー設定</label>
+        <div class="settings-btns">
+            <button class="action-btn-mini" onclick="resetMenuColors()">色をリセット</button>
+            <button class="action-btn-mini" onclick="resetMenuOrder()">並び順をリセット</button>
+        </div>
+
+        <label class="group-label" style="margin-top: 15px;">💾 データ移行・バックアップ</label>
+        <div class="settings-btns">
+            <button class="action-btn-mini" onclick="exportData()">📥 バックアップ</button>
+            <button class="action-btn-mini" onclick="document.getElementById('importFile').click()">📤 復元</button>
+            <input type="file" id="importFile" accept=".json,text/plain" style="display:none;">
+        </div>
+    </div>
+</div>
+
+<div id="colorModal" class="color-modal-overlay">
+    <div class="color-modal">
+        <h3 style="margin-top:0; color:#555; text-align:center; font-size:16px;">色を選択</h3>
+        <div style="display:flex; justify-content:center; margin-bottom:15px;">
+            <canvas id="colorWheel" width="220" height="220" style="border-radius:50%; cursor:crosshair;"></canvas>
+        </div>
+        <div class="modal-hex-row">
+            <div class="modal-preview" id="modalPreview"></div>
+            <input type="text" id="modalHexInput" maxlength="7" placeholder="#FFFFFF">
+        </div>
+        <div class="modal-palette-section">
+            <div style="font-size:11px; color:#999; margin-bottom:8px; text-align:center;">長押しでお気に入りに登録</div>
+            <div class="palette-grid" id="paletteGrid"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn-cancel" id="btnModalCancel">中止</button>
+            <button class="modal-btn-apply" id="btnModalApply">決定</button>
+        </div>
+    </div>
+</div>
+
+<div id="customConfirmModal" class="color-modal-overlay">
+    <div class="color-modal">
+        <h3 id="confirmMessage" style="margin-top:0; color:#555; text-align:center; font-size:16px; line-height:1.6;"></h3>
+        <div class="modal-actions" style="margin-top: 25px;">
+            <button class="modal-btn-cancel" id="btnConfirmCancel">キャンセル</button>
+            <button class="modal-btn-apply" id="btnConfirmOK">実行する</button>
+        </div>
+    </div>
+</div>
+
+<script src="index.js"></script>
+</body>
+</html>

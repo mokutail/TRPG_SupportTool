@@ -1,0 +1,136 @@
+/* --- 共通：クリーンなヘッダー設計 --- */
+.tool-header, .top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 15px 10px 15px;
+    position: sticky;
+    top: 0;
+    margin: 0 0 20px 0;
+    z-index: 1000;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.header-title {
+    color: #76ADAF;
+    font-weight: bold;
+    font-size: 20px;
+    margin: 0;
+}
+
+.back-btn, .setting-btn {
+    padding: 12px 20px;
+    background-color: #fff;
+    border: 2px solid #eee;
+    border-radius: 14px;
+    font-weight: bold;
+    font-size: 15px;
+    color: #555;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.back-btn:active, .setting-btn:active {
+    transform: scale(0.95);
+    background-color: #f0f7f7;
+    border-color: #76ADAF;
+    color: #00695c;
+}
+
+.group-label {
+    display: block;
+    padding: 10px 0 0 0;
+    font-size: 14px;
+    font-weight: bold;
+    color: #76ADAF;
+    margin-bottom: 10px;
+}
+
+/* --- 独自カラーピッカー（モーダル） --- */
+.color-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000;
+}
+.color-modal {
+    background: #fff; width: 90%; max-width: 320px; border-radius: 20px;
+    padding: 25px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* ★ 追加：カラーピッカーとグレースケールバーを並べるコンテナ */
+.color-picker-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+/* ★ 追加：グレースケールバーのスタイル */
+.grayscale-bar {
+    border-radius: 15px;
+    cursor: crosshair;
+    touch-action: none;
+    border: 1px solid #ddd;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.body {
+     display: block;
+     margin: 8px 8px 60px 8px;
+ }
+
+/* --- ★ 修正：地雷チェック完全互換UI --- */
+.warn-reset-band {
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #888;
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    margin-bottom: 25px;
+    font-family: inherit;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent; /* 青い四角を消す */
+}
+
+.warn-reset-band:active {
+    border-color: #76ADAF;
+    background-color: #f0f7f7;
+    color: #00695c;
+    box-shadow: 0 4px 10px rgba(118, 173, 175, 0.15);
+}
+
+.modal-hex-row { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
+.modal-preview { width: 45px; height: 45px; border-radius: 10px; border: 2px solid #eee; }
+#modalHexInput {
+    flex: 1; border: 2px solid #eee; border-radius: 10px; padding: 12px;
+    font-size: 16px; font-weight: bold; font-family: monospace; text-align: center; outline: none;
+}
+#modalHexInput:focus { border-color: #76ADAF; }
+
+.modal-palette-section { margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 15px; }
+.palette-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.palette-slot { aspect-ratio: 1; border-radius: 50%; border: 2px solid #ddd; background: #fff; cursor: pointer; }
+.modal-actions { display: flex; gap: 10px; }
+.modal-btn-cancel { flex: 1; padding: 15px; background: #eee; border: none; border-radius: 12px; font-weight: bold; color: #666; }
+.modal-btn-apply { flex: 1; padding: 15px; background: #76ADAF; border: none; border-radius: 12px; font-weight: bold; color: #fff; }
+
+/* 共通確認モーダル用 */
+#customConfirmModal .color-modal { padding: 35px 25px; }
+#customConfirmModal .modal-btn-cancel, #customConfirmModal .modal-btn-apply { transition: none !important; }
+#customConfirmModal .modal-btn-cancel:active { background-color: #ccc !important; transform: scale(1.1) !important; }
+#customConfirmModal .modal-btn-apply:active { background-color: #004d40 !important; transform: scale(1.1) !important; }
