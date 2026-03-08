@@ -1,4 +1,77 @@
+// ==========================================
+// ★ Firebaseの初期設定
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};
+
+// Firebaseの起動
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ログイン状態を管理する変数
+let currentUser = null;
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ==========================================
+    // ★ ログイン・ログアウトの処理
+    // ==========================================
+    const authBtn = document.getElementById('authBtn');
+    const userInfoArea = document.getElementById('userInfoArea');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+
+    // ログイン状態の変化を監視する機能
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // ログイン成功時
+            currentUser = user;
+            authBtn.innerText = "🚪 ログアウト";
+            authBtn.style.backgroundColor = "#ffebee"; // 薄い赤
+            authBtn.style.color = "#c62828";
+
+            userInfoArea.style.display = "block";
+            userNameDisplay.innerText = user.displayName || "名無し";
+
+            console.log("ログイン成功！ユーザーID:", user.uid);
+        } else {
+            // ログアウト時
+            currentUser = null;
+            authBtn.innerText = "👤 ログイン";
+            authBtn.style.backgroundColor = "#e3f2fd"; // 薄い青
+            authBtn.style.color = "#0277bd";
+
+            userInfoArea.style.display = "none";
+
+            console.log("ログアウトしました");
+        }
+    });
+
+    // ボタンを押した時のアクション
+    authBtn.addEventListener('click', () => {
+        if (currentUser) {
+            // ログイン中ならログアウトする
+            if (confirm("ログアウトしますか？")) {
+                auth.signOut();
+            }
+        } else {
+            // ログアウト中ならGoogleログイン画面を出す
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch((error) => {
+                console.error("ログインエラー:", error);
+                alert("ログインに失敗しました。");
+            });
+        }
+    });
+
+    // ==========================================
+    // 以下、司令官が作ったメニュー管理コード（そのまま）
+    // ==========================================
     const homeView = document.getElementById('home-view');
     const editToggle = document.getElementById('toggleEditMode');
     const settingsPanel = document.getElementById('settings-panel');
@@ -8,12 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalHexInput = document.getElementById('modalHexInput');
 
     const defaultMenu = [
-        { id: 'recruit', label: '📢 募集画像シート作成', color: '#ff6f00', href: 'recruit/recruit.html' },
-        { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#607d8b', href: 'warning/warning.html' },
-        { id: 'scenario', label: '📚 自作シナリオ管理', color: '#4caf50', href: 'scenario/scenario.html' },
-        { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
-        { id: 'table_kp', label: '🗓️ 卓管理', color: '#9C27B0', href: 'kp/table_kp.html' },
-        { id: 'table_pl', label: '🎲 探索者管理', color: '#1976D2', href: 'table/table_pl.html' }
+        { id: 'recruit', label: '📢 募集画像シート作成', color: '#5a5faa', href: 'recruit/recruit.html' },
+        { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#5a5faa', href: 'warning/warning.html' },
+        { id: 'scenario', label: '📚 自作シナリオ管理', color: '#5a5faa', href: 'scenario/scenario.html' },
+        { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#5a5faa', href: 'scenario_poss/scenario_poss.html' },
+        { id: 'scenario_want', label: '💭 行きたいシナリオ一覧', color: '#5a5faa', href: 'scenario_want/scenario_want.html' },
+        { id: 'table_kp', label: '🗓️ 卓管理', color: '#5a5faa', href: 'kp/table_kp.html' },
+        { id: 'table_pl', label: '🎲 探索者管理', color: '#5a5faa', href: 'table/table_pl.html' }
     ];
 
     let currentMenu = JSON.parse(localStorage.getItem('trpg_menu_config'));
@@ -32,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (def) {
                 item.href = def.href;
                 item.label = def.label;
+                if (item.isHidden === undefined) item.isHidden = false;
             }
         });
         localStorage.setItem('trpg_menu_config', JSON.stringify(currentMenu));
@@ -48,26 +123,42 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMenu() {
         homeView.innerHTML = '';
         currentMenu.forEach((item, index) => {
+            if (!isEditMode && item.isHidden) return;
+
             const wrapper = document.createElement('div');
             wrapper.className = 'menu-item-wrapper';
-            let editHtml = '';
+
             if (isEditMode) {
-                editHtml = `
-                <div class="edit-controls">
+                const visIcon = item.isHidden ? '◻️' : '✅';
+                const opacity = item.isHidden ? '0.4' : '1';
+
+                const editHtml = `
+                <div class="edit-controls" style="display:flex; justify-content:space-between; align-items:center;">
                     <div class="color-edit-group" style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="openColorPicker('${item.id}')">
                         <div class="color-preview-box" style="background:${item.color}; width:40px; height:40px; border-radius:10px; border:2px solid #ddd;"></div>
                         <span style="font-weight:bold; color:#777; font-size:13px;">${item.color.toUpperCase()}</span>
                     </div>
-                    <div class="order-btn-group">
-                        <button class="order-btn order-up" onclick="moveItem(${index}, -1)"></button>
-                        <button class="order-btn order-down" onclick="moveItem(${index}, 1)"></button>
+                    <div style="display:flex; align-items:center; gap: 10px;">
+                        <button onclick="toggleVisibility(${index})" style="background:none; border:none; font-size:26px; cursor:pointer; padding:0; margin-right:5px; -webkit-tap-highlight-color: transparent;" title="表示/非表示">${visIcon}</button>
+                        <div class="order-btn-group">
+                            <button class="order-btn order-up" onclick="moveItem(${index}, -1)"></button>
+                            <button class="order-btn order-down" onclick="moveItem(${index}, 1)"></button>
+                        </div>
                     </div>
                 </div>`;
+                wrapper.innerHTML = `<a href="javascript:void(0)" class="menu-btn" style="background-color: ${item.color}; opacity: ${opacity}; cursor: default;">${item.label}</a>${editHtml}`;
+            } else {
+                wrapper.innerHTML = `<a href="${item.href}" class="menu-btn" style="background-color: ${item.color};">${item.label}</a>`;
             }
-            wrapper.innerHTML = `<a href="${isEditMode ? 'javascript:void(0)' : item.href}" class="menu-btn" style="background-color: ${item.color};">${item.label}</a>${editHtml}`;
             homeView.appendChild(wrapper);
         });
     }
+
+    window.toggleVisibility = (index) => {
+        currentMenu[index].isHidden = !currentMenu[index].isHidden;
+        saveConfig();
+        renderMenu();
+    };
 
     function showCustomConfirm(message) {
         return new Promise((resolve) => {
@@ -195,13 +286,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.resetMenuOrder = () => {
         setTimeout(async () => {
-            const result = await showCustomConfirm('並び順を初期状態に戻しますか？');
+            const result = await showCustomConfirm('並び順と表示設定を初期状態に戻しますか？');
             if(result) {
                 const orderedMenu = defaultMenu.map(def => {
                     const current = currentMenu.find(c => c.id === def.id);
                     return {
                         ...def,
-                        color: current ? current.color : def.color
+                        color: current ? current.color : def.color,
+                        isHidden: false
                     };
                 });
                 currentMenu = orderedMenu;
@@ -210,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 150);
     };
 
-    // --- ★ 修正：データバックアップ（Java連携のスマートなダウンロード） ---
     window.exportData = () => {
         const allData = {};
         let dataCount = 0;
@@ -232,11 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
         const fileName = `TRPG_Backup_${dateStr}.json`;
 
-        // Androidアプリ側にデータとファイル名を渡して、直接ダウンロードフォルダに保存させる！
         if (window.Android && window.Android.saveBackup) {
             window.Android.saveBackup(jsonStr, fileName);
         } else {
-            // PCブラウザ等の場合の通常のダウンロード処理（フォールバック）
             const blob = new Blob([jsonStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -250,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- データ復元（インポート） ---
     const importFileInput = document.getElementById('importFile');
     if (importFileInput) {
         importFileInput.addEventListener('change', (event) => {

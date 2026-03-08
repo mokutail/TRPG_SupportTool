@@ -59,13 +59,13 @@
         </div>
 
         <div style="margin-bottom:12px;">
-            <input type="text" id="editPcTags" placeholder="タグ (例: 秘匿, 医者)" class="sc-band-input">
+            <input type="text" id="editPcTags" placeholder="タグ" class="sc-band-input">
         </div>
         <div style="margin-bottom:12px;">
-            <input type="url" id="editPcUrl" placeholder="キャラシURL(任意)" class="sc-band-input">
+            <input type="url" id="editPcUrl" placeholder="キャラシURL" class="sc-band-input">
         </div>
         <div style="margin-bottom:15px;">
-            <textarea id="editPcIachara" placeholder="▼ いあきゃらのコマ出力(JSON)やチャパレを貼り付けると能力値と技能を上書き更新します" class="sc-band-input" style="height: 60px; resize: none; font-size: 12px;"></textarea>
+            <textarea id="editPcIachara" placeholder="▼ いあきゃらのコマ出力(JSON)やチャパレを貼り付けると上書き更新されます" class="sc-band-input" style="height: 60px; resize: none; font-size: 12px;"></textarea>
         </div>
     </div>
 
@@ -78,6 +78,9 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 <script src="edit_pc.js"></script>
 </body>
 </html>

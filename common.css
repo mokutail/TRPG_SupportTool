@@ -83,7 +83,7 @@
 
 .body {
      display: block;
-     margin: 8px 8px 60px 8px;
+     margin: 0 8px 60px 8px;
  }
 
 /* --- ★ 修正：地雷チェック完全互換UI --- */
