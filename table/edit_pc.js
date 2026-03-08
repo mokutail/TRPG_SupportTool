@@ -11,20 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pc = pcData[pcIndex];
     let currentImageBase64 = pc.image || null;
-
-    // ★ 修正：編集画面を開くとき、日付順(古い順=昇順)に並び替える
     let historyList = [...(pc.history || [])];
-    historyList.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        const validA = !isNaN(dateA);
-        const validB = !isNaN(dateB);
-
-        if (!validA && validB) return -1; // 日付なしは古い(上)とする
-        if (validA && !validB) return 1;
-        if (!validA && !validB) return 0;
-        return dateA - dateB; // 古い日付が先(昇順)
-    });
 
     // --- 汎用ドロップダウン設定関数 ---
     function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText) {
@@ -177,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
         historyList.forEach((h, index) => {
             const div = document.createElement('div');
             div.className = 'edit-history-item';
-            // ★ 上から「シナリオ1」「シナリオ2」と昇順になるように設定
             div.innerHTML = `
                 <div class="edit-history-header">
                     <span style="font-size:12px; color:#888; font-weight:bold;">シナリオ ${index + 1}</span>
@@ -208,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btnAddHistoryRow').addEventListener('click', () => {
         updateHistoryArrayFromDOM();
-        // ★ 新しい履歴は一番下（最新）に追加される
         historyList.push({ scenario: '', date: '', ho: '', status: '生還' });
         renderHistory();
     });
@@ -259,9 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.tags = document.getElementById('editPcTags').value.trim();
         pc.url = document.getElementById('editPcUrl').value.trim();
         pc.image = currentImageBase64;
-
-        // ★ 修正：リスト表示用などのために、裏側では「降順(最新が一番上)」に逆転させて保存する
-        pc.history = historyList.slice().reverse();
+        pc.history = historyList;
 
         pcData[pcIndex] = pc;
         localStorage.setItem('trpg_pcs_v1', JSON.stringify(pcData));

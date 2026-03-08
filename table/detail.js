@@ -67,86 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 statsHtml += `</div>`;
             }
 
-            // ★ 修正：技能値を縦並びにして、全体をプルダウンの中に収納する魔法
             let skillsHtml = '';
             if (pc.skills) {
-                const lines = pc.skills.split('\n');
-                const parsedSkills = [];
-
-                lines.forEach(line => {
-                    const tLine = line.trim();
-                    if (!tLine) return;
-
-                    // 不要な行（正気度、ダメージ、×5など）を完全に無視
-                    if (
-                        tLine.includes('×') ||
-                        tLine.includes('*') ||
-                        tLine.includes('正気度') ||
-                        tLine.includes('ダメージ') ||
-                        tLine.includes('SAN') ||
-                        /([a-zA-Z]+)[xXｘＸ]\d+/.test(tLine)
-                    ) {
-                        return;
-                    }
-
-                    // 「CCB<=90 【目星】」等から抽出
-                    const match = tLine.match(/(?:<=?|>=?)\s*(\d+)\s*(【.+】|\S+)/);
-                    if (match) {
-                        let val = match[1];
-                        let name = match[2];
-                        if (!name.startsWith('【')) name = '【' + name + '】';
-                        parsedSkills.push({ name: name, val: val });
-                    }
-                });
-
-                if (parsedSkills.length > 0) {
-                    // ★ 縦並び（flex-direction: column）に変更
-                    let flexHtml = `<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">`;
-                    parsedSkills.forEach(s => {
-                        flexHtml += `
-                            <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 16px; border-radius: 10px; border-left: 5px solid #76ADAF; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; border-left: 5px solid #76ADAF;">
-                                <span style="font-size: 14px; font-weight: bold; color: #444;">${s.name}</span>
-                                <span style="font-size: 18px; font-weight: bold; color: #76ADAF;">${s.val}%</span>
-                            </div>
-                        `;
-                    });
-                    flexHtml += `</div>`;
-
-                    skillsHtml = `
-                        <div style="margin-bottom: 25px;">
-                            <details id="skillsDetailsAccordion" class="skills-accordion">
-                                <summary style="font-weight: bold; color: #76ADAF; padding: 14px 16px; background: #f0f7f7; border-radius: 12px; cursor: pointer; border: 2px solid #76ADAF; outline: none; -webkit-tap-highlight-color: transparent; font-size: 15px;">
-                                    🛠️ 技能値を開く
-                                </summary>
-                                <div style="padding-top: 10px;">
-                                    ${flexHtml}
-
-                                    <details class="skills-accordion" style="margin-top: 20px;">
-                                        <summary style="font-size: 12px; color: #888; background: #f8f9fa; border: 1px solid #eee; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent;">📋 ココフォリア用チャパレ (コピー用)</summary>
-                                        <div class="skills-content" style="margin-top: 8px; font-size: 11px; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 10px; max-height: 200px; overflow-y: auto;">${pc.skills}</div>
-                                    </details>
-
-                                    <button onclick="document.getElementById('skillsDetailsAccordion').removeAttribute('open');" style="margin-top: 20px; width: 100%; background: #e0e0e0; color: #555; border: none; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">▲ 一覧をたたむ</button>
-                                </div>
-                            </details>
-                        </div>
-                    `;
-                } else {
-                    // 特殊な形式で抽出できなかった場合の安全設計
-                    skillsHtml = `
-                        <div style="margin-bottom: 25px;">
-                            <details id="skillsDetailsAccordion" class="skills-accordion">
-                                <summary style="font-weight: bold; color: #76ADAF; padding: 14px 16px; background: #f0f7f7; border-radius: 12px; cursor: pointer; border: 2px solid #76ADAF; outline: none; -webkit-tap-highlight-color: transparent; font-size: 15px;">
-                                    🛠️ 技能値・チャットパレットを開く
-                                </summary>
-                                <div style="padding-top: 15px;">
-                                    <div class="skills-content">${pc.skills}</div>
-                                    <button onclick="document.getElementById('skillsDetailsAccordion').removeAttribute('open');" style="margin-top: 20px; width: 100%; background: #e0e0e0; color: #555; border: none; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">▲ プルダウンをたたむ</button>
-                                </div>
-                            </details>
-                        </div>
-                    `;
-                }
+                skillsHtml = `
+                    <details class="skills-accordion">
+                        <summary>🛠️ 技能値・チャットパレットを開く</summary>
+                        <div class="skills-content">${pc.skills}</div>
+                    </details>
+                `;
             }
 
             const sortToggleHtml = `
@@ -195,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // ★ 修正：詳細画面のプロフィール情報に「種族」と「職業」を追加
             detailView.innerHTML = `
                 <div class="detail-header">
                     <div class="detail-img" style="${imgStyle}">${pc.image ? '' : '👤'}</div>

@@ -51,7 +51,7 @@
             <label class="group-label" id="formTitleLabel">🆕 新規シナリオ登録</label>
 
             <div style="margin-bottom:12px;">
-                <input type="text" id="scTitle" placeholder="*シナリオ名*" class="sc-band-input">
+                <input type="text" id="scTitle" placeholder="シナリオ名" class="sc-band-input">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
@@ -74,13 +74,13 @@
             <input type="hidden" id="scStatusHidden" value="執筆中">
 
             <div style="margin-bottom:12px;">
-                <input type="url" id="scDocUrl" placeholder="資料/PDF/ドキュメント URL" class="sc-band-input">
+                <input type="url" id="scDocUrl" placeholder="資料/PDF/ドキュメント URL (任意)" class="sc-band-input">
             </div>
             <div style="margin-bottom:12px;">
-                <input type="url" id="scBoothUrl" placeholder="Booth URL" class="sc-band-input">
+                <input type="url" id="scBoothUrl" placeholder="Booth URL (任意)" class="sc-band-input">
             </div>
             <div style="margin-bottom:12px;">
-                <input type="url" id="scCcfoliaUrl" placeholder="ココフォリア URL" class="sc-band-input">
+                <input type="url" id="scCcfoliaUrl" placeholder="ココフォリア URL (任意)" class="sc-band-input">
             </div>
 
             <button class="action-btn" id="btnAddScenario">作品リストに追加</button>
@@ -93,9 +93,6 @@
     </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 <script src="scenario.js"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let possData = JSON.parse(localStorage.getItem('trpg_scenario_poss_v1')) || [];
     let editingId = null;
 
+    // ★ 指定されたシステム配列
     const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
     let currentSystemFilter = "すべて";
 
@@ -75,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ★ 修正：時間検索(filterTime)を入力時に監視するように追加！
     ['filterTitle', 'filterMemo', 'filterTime'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', renderList);
@@ -115,11 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         possData.forEach((item) => {
+            // システムで絞り込み
             if (currentSystemFilter !== 'すべて' && item.system !== currentSystemFilter) return;
+
             if (fStatus !== 'すべて' && item.status !== fStatus) return;
             if (fTitle !== '' && (!item.title || !item.title.toLowerCase().includes(fTitle))) return;
             if (fMemo !== '' && (!item.memo || !item.memo.toLowerCase().includes(fMemo))) return;
 
+            // ★ 時間の範囲検索機能
             if (fTime !== '') {
                 if (!item.time) return;
 
@@ -133,12 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (rangeMatch) {
                         const min = parseFloat(rangeMatch[1]);
                         const max = parseFloat(rangeMatch[2]);
-                        if (searchNum >= min && searchNum <= max) isMatch = true;
+                        if (searchNum >= min && searchNum <= max) {
+                            isMatch = true;
+                        }
                     } else {
                         const singleMatch = item.time.match(/(\d+(?:\.\d+)?)/);
                         if (singleMatch) {
                             const val = parseFloat(singleMatch[1]);
-                            if (searchNum === val) isMatch = true;
+                            if (searchNum === val) {
+                                isMatch = true;
+                            }
                         }
                     }
                 }
@@ -164,17 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const infoHtml = (item.players || item.time) ? `<div class="item-info-row"><span>👥 ${item.players || '未定'}</span><span>⏳ ${item.time || '未定'}</span></div>` : '';
             const memoHtml = item.memo ? `<div style="font-size:12px; color:#777; background:#f8f9fa; padding:8px; border-radius:8px; margin-top:8px;">📝 ${item.memo}</div>` : '';
 
-            // ★ カウンター表示の追加
-            const counterHtml = `
-                <div class="control-row">
-                    <div class="count-display">KP/GM回数: <strong>${item.runCount || 0}</strong> 回</div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="cnt-btn" onclick="updateRunCount('${item.id}', -1)">-</button>
-                        <button class="cnt-btn" onclick="updateRunCount('${item.id}', 1)">+</button>
-                    </div>
-                </div>
-            `;
-
             div.innerHTML = `
                 <div class="item-actions-corner">
                     <button class="corner-btn edit" onclick="editItem('${item.id}')">修正</button>
@@ -188,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${infoHtml}
                 ${memoHtml}
                 ${linksContainer}
-                ${counterHtml}
             `;
             listContainer.appendChild(div);
         });
@@ -204,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let time = document.getElementById('possTime').value.trim();
         const url = document.getElementById('possUrl').value.trim();
         const ccfoliaUrl = document.getElementById('possCcfoliaUrl').value.trim();
-        const runCount = parseInt(document.getElementById('possRunCount').value) || 0; // ★ 取得
         const memo = document.getElementById('possMemo').value.trim();
 
         if (!title) { alert('シナリオ名を入力してください'); return; }
@@ -215,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editingId) {
             const index = possData.findIndex(d => d.id === editingId);
             if (index > -1) {
-                possData[index] = { ...possData[index], title, status, players, time, url, ccfoliaUrl, runCount, memo, system: possData[index].system || 'CoC 6th' };
+                possData[index] = { ...possData[index], title, status, players, time, url, ccfoliaUrl, memo, system: possData[index].system || 'CoC 6th' };
             }
             editingId = null;
             document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
@@ -226,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const system = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
             possData.unshift({
                 id: Date.now().toString(),
-                system, title, status, players, time, url, ccfoliaUrl, runCount, memo // ★ 追加
+                system, title, status, players, time, url, ccfoliaUrl, memo
             });
         }
 
@@ -234,16 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resetForm();
         renderList();
     });
-
-    // ★ カウンター増減処理
-    window.updateRunCount = (id, delta) => {
-        const index = possData.findIndex(d => d.id === id);
-        if (index > -1) {
-            possData[index].runCount = Math.max(0, (parseInt(possData[index].runCount) || 0) + delta);
-            localStorage.setItem('trpg_scenario_poss_v1', JSON.stringify(possData));
-            renderList();
-        }
-    };
 
     window.editItem = (id) => {
         const item = possData.find(d => d.id === id);
@@ -255,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('possTime').value = item.time ? item.time.replace(/時間$/, '') : '';
         document.getElementById('possUrl').value = item.url || '';
         document.getElementById('possCcfoliaUrl').value = item.ccfoliaUrl || '';
-        document.getElementById('possRunCount').value = item.runCount || 0; // ★ 編集時に読み込み
         document.getElementById('possMemo').value = item.memo || '';
 
         document.getElementById('possStatusHidden').value = item.status || '未読 (積読)';
@@ -282,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('possTime').value = '';
         document.getElementById('possUrl').value = '';
         document.getElementById('possCcfoliaUrl').value = '';
-        document.getElementById('possRunCount').value = ''; // ★ リセット
         document.getElementById('possMemo').value = '';
     }
 

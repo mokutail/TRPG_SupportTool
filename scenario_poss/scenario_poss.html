@@ -49,15 +49,15 @@
         <label class="group-label" id="formTitleLabel">🆕 所持シナリオの登録</label>
 
         <div style="margin-bottom:12px;">
-            <input type="text" id="possTitle" placeholder="*シナリオ名*" class="sc-band-input">
+            <input type="text" id="possTitle" placeholder="シナリオ名" class="sc-band-input">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <input type="text" id="possPlayers" placeholder="人数" class="sc-band-input">
-            <input type="text" id="possTime" placeholder="時間" class="sc-band-input">
+            <input type="text" id="possPlayers" placeholder="人数 (例: 2)" class="sc-band-input">
+            <input type="text" id="possTime" placeholder="時間 (例: 3〜4)" class="sc-band-input">
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div style="margin-bottom:12px;">
             <div class="custom-select-wrapper" id="possStatusWrapper">
                 <div class="select-display" id="possStatusDisplay">未読 (積読)</div>
                 <div class="select-options" id="possStatusOptions">
@@ -66,22 +66,20 @@
                     <div class="option-item" data-value="回せる (準備完了)">回せる (準備完了)</div>
                     <div class="option-item" data-value="PL通過済">PL通過済</div>
                 </div>
-                <input type="hidden" id="possStatusHidden" value="未読 (積読)">
             </div>
-
-            <input type="number" id="possRunCount" placeholder="KP/GM回数" class="sc-band-input" min="0">
+            <input type="hidden" id="possStatusHidden" value="未読 (積読)">
         </div>
 
         <div style="margin-bottom:12px;">
-            <input type="url" id="possUrl" placeholder="Boothや配布元のURL" class="sc-band-input">
+            <input type="url" id="possUrl" placeholder="Boothや配布元のURL (任意)" class="sc-band-input">
         </div>
 
         <div style="margin-bottom:12px;">
-            <input type="url" id="possCcfoliaUrl" placeholder="ココフォリアの部屋URL" class="sc-band-input">
+            <input type="url" id="possCcfoliaUrl" placeholder="ココフォリアの部屋URL (任意)" class="sc-band-input">
         </div>
 
         <div style="margin-bottom:15px;">
-            <input type="text" id="possMemo" placeholder="メモ" class="sc-band-input">
+            <input type="text" id="possMemo" placeholder="メモ (例: HOあり, 推奨技能: 目星)" class="sc-band-input">
         </div>
 
         <button class="action-btn" id="btnAddPoss">本棚に追加</button>
@@ -89,13 +87,10 @@
 
     <div class="input-group">
         <label class="group-label">📚 所持シナリオ一覧</label>
-        <div id="scList"></div>
+        <div id="possListContainer"></div>
     </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 <script src="scenario_poss.js"></script>
 </body>
 </html>
