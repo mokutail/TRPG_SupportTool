@@ -19,48 +19,51 @@ const db = firebase.firestore();
 let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ==========================================
-    // ★ ログイン・ログアウトの処理
-    // ==========================================
     const authBtn = document.getElementById('authBtn');
     const userInfoArea = document.getElementById('userInfoArea');
     const userNameDisplay = document.getElementById('userNameDisplay');
 
-    // ログイン状態の変化を監視する機能
+    // ==========================================
+    // ★ ログイン・ログアウトの処理 ＆ メニューの同期
+    // ==========================================
     auth.onAuthStateChanged((user) => {
         if (user) {
             // ログイン成功時
             currentUser = user;
             authBtn.innerText = "🚪 ログアウト";
-            authBtn.style.backgroundColor = "#ffebee"; // 薄い赤
+            authBtn.style.backgroundColor = "#ffebee";
             authBtn.style.color = "#c62828";
 
             userInfoArea.style.display = "block";
             userNameDisplay.innerText = user.displayName || "名無し";
 
             console.log("ログイン成功！ユーザーID:", user.uid);
+
+            // ★ Firebaseからメニューの色や並び順の設定を読み込む（リアルタイム同期）
+            startMenuSync();
+
         } else {
             // ログアウト時
             currentUser = null;
             authBtn.innerText = "👤 ログイン";
-            authBtn.style.backgroundColor = "#e3f2fd"; // 薄い青
+            authBtn.style.backgroundColor = "#e3f2fd";
             authBtn.style.color = "#0277bd";
 
             userInfoArea.style.display = "none";
-
             console.log("ログアウトしました");
+
+            // ログアウト中はローカルのデータで表示する
+            renderMenu();
         }
     });
 
     // ボタンを押した時のアクション
     authBtn.addEventListener('click', () => {
         if (currentUser) {
-            // ログイン中ならログアウトする
             if (confirm("ログアウトしますか？")) {
                 auth.signOut();
             }
         } else {
-            // ログアウト中ならGoogleログイン画面を出す
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).catch((error) => {
                 console.error("ログインエラー:", error);
@@ -70,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 以下、司令官が作ったメニュー管理コード（そのまま）
+    // メニュー管理コード
     // ==========================================
     const homeView = document.getElementById('home-view');
     const editToggle = document.getElementById('toggleEditMode');
@@ -81,15 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalHexInput = document.getElementById('modalHexInput');
 
     const defaultMenu = [
-        { id: 'recruit', label: '📢 募集画像シート作成', color: '#5a5faa', href: 'recruit/recruit.html' },
-        { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#5a5faa', href: 'warning/warning.html' },
-        { id: 'scenario', label: '📚 自作シナリオ管理', color: '#5a5faa', href: 'scenario/scenario.html' },
-        { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#5a5faa', href: 'scenario_poss/scenario_poss.html' },
-        { id: 'scenario_want', label: '💭 行きたいシナリオ一覧', color: '#5a5faa', href: 'scenario_want/scenario_want.html' },
-        { id: 'table_kp', label: '🗓️ 卓管理', color: '#5a5faa', href: 'kp/table_kp.html' },
-        { id: 'table_pl', label: '🎲 探索者管理', color: '#5a5faa', href: 'table/table_pl.html' }
+        { id: 'recruit', label: '📢 募集画像シート作成', color: '#607d8b', href: 'recruit/recruit.html' },
+        { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#607d8b', href: 'warning/warning.html' },
+        { id: 'scenario', label: '📚 自作シナリオ管理', color: '#607d8b', href: 'scenario/scenario.html' },
+        { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
+        { id: 'table_want', label: '💭 行きたいシナリオ一覧', color: '#607d8b', href: 'scenario_want/scenario_want.html' }, // ★ID被りを修正しました
+        { id: 'table_kp', label: '🗓️ 卓管理', color: '#607d8b', href: 'kp/table_kp.html' },
+        { id: 'table_pl', label: '🎲 探索者管理', color: '#607d8b', href: 'table/table_pl.html' }
     ];
 
+    // まずは端末に残っている古いデータを読み込んでおく
     let currentMenu = JSON.parse(localStorage.getItem('trpg_menu_config'));
 
     if (!currentMenu) {
@@ -109,15 +113,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (item.isHidden === undefined) item.isHidden = false;
             }
         });
-        localStorage.setItem('trpg_menu_config', JSON.stringify(currentMenu));
     }
 
     let isEditMode = false;
     let editingId = null;
     let favorites = JSON.parse(localStorage.getItem('trpg_fav_colors')) || Array(8).fill('#FFFFFF');
 
+    // ★ メニューの同期システム
+    function startMenuSync() {
+        db.collection("users").doc(currentUser.uid).collection("settings").doc("menu_config")
+          .onSnapshot((doc) => {
+              if (doc.exists) {
+                  // Firebaseにデータがあれば、それを採用する
+                  const firebaseMenu = doc.data().menu;
+
+                  // 足りない項目（アップデートで増えたツールなど）があれば補充する
+                  defaultMenu.forEach(def => {
+                      if (!firebaseMenu.find(m => m.id === def.id)) {
+                          firebaseMenu.push(JSON.parse(JSON.stringify(def)));
+                      }
+                  });
+                  currentMenu = firebaseMenu;
+              } else {
+                  // まだFirebaseに保存されていなければ、今の設定を保存する
+                  saveConfig();
+              }
+              renderMenu();
+          });
+    }
+
+    // ★ 保存システム（ローカルにもFirebaseにも両方保存する）
     const saveConfig = () => {
         localStorage.setItem('trpg_menu_config', JSON.stringify(currentMenu));
+        if (currentUser) {
+            db.collection("users").doc(currentUser.uid).collection("settings").doc("menu_config")
+              .set({ menu: currentMenu }, { merge: true })
+              .catch(err => console.error("メニュー設定の保存に失敗:", err));
+        }
     };
 
     function renderMenu() {
@@ -157,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.toggleVisibility = (index) => {
         currentMenu[index].isHidden = !currentMenu[index].isHidden;
         saveConfig();
-        renderMenu();
     };
 
     function showCustomConfirm(message) {
@@ -251,7 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = currentMenu.find(m => m.id === editingId);
         item.color = modalHexInput.value;
         saveConfig();
-        renderMenu();
         colorModal.style.display = 'none';
     };
     document.getElementById('btnModalCancel').onclick = () => colorModal.style.display = 'none';
@@ -267,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const next = index + dir;
         if(next >= 0 && next < currentMenu.length) {
             [currentMenu[index], currentMenu[next]] = [currentMenu[next], currentMenu[index]];
-            saveConfig(); renderMenu();
+            saveConfig();
         }
     };
 
@@ -279,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const def = defaultMenu.find(d => d.id === m.id);
                     if(def) m.color = def.color;
                 });
-                saveConfig(); renderMenu();
+                saveConfig();
             }
         }, 150);
     };
@@ -297,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 });
                 currentMenu = orderedMenu;
-                saveConfig(); renderMenu();
+                saveConfig();
             }
         }, 150);
     };
@@ -369,6 +399,4 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsText(file);
         });
     }
-
-    renderMenu();
 });
