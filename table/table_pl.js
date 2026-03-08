@@ -1,62 +1,16 @@
-// ==========================================
-// ★ Firebaseの初期設定
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
-  authDomain: "trpg-supporttool.firebaseapp.com",
-  projectId: "trpg-supporttool",
-  storageBucket: "trpg-supporttool.firebasestorage.app",
-  messagingSenderId: "163289928352",
-  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
-};
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentUser = null;
-let pcData = []; // Firebaseから取得したデータをここに入れます！
-
-let currentImageBase64 = null;
-let currentSystemFilter = "すべて";
-let targetPcIdForContinue = null;
-let editingPcId = null;
-let editingPcSystem = null;
-
-const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
-
 document.addEventListener('DOMContentLoaded', () => {
     const pcListContainer = document.getElementById('pcListContainer');
+    let pcData = JSON.parse(localStorage.getItem('trpg_pcs_v1')) || [];
 
-    // ==========================================
-    // ★ 2. ログインチェックとリアルタイム同期
-    // ==========================================
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUser = user;
-            startRealtimeSync();
-        } else {
-            alert("データの同期にはログインが必要です。トップページに戻ります。");
-            window.location.href = '../index.html';
-        }
-    });
+    let currentImageBase64 = null;
+    let currentSystemFilter = "すべて";
+    let targetPcIdForContinue = null;
+    let editingPcId = null;
+    let editingPcSystem = null;
 
-    function startRealtimeSync() {
-        // "characters" という名前の引き出しを監視する
-        db.collection("users").doc(currentUser.uid).collection("characters")
-          .orderBy("createdAt", "desc") // 新しく作られた順に並べる
-          .onSnapshot((snapshot) => {
-              pcData = [];
-              snapshot.forEach((doc) => {
-                  pcData.push({ id: doc.id, ...doc.data() });
-              });
-              renderPcList(); // データが変わるたびに自動でリストを再描画！
-          });
-    }
+    const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
 
-    // --- 🎨 画像アップロード ---
+    // --- 画像アップロード ---
     document.getElementById('imageUploadWrapper').addEventListener('click', () => { document.getElementById('pcImage').click(); });
     document.getElementById('pcImage').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -110,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
     setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
 
-    // --- ★ 自由に追加＆削除できるカスタムプルダウン（これは端末ごとの保存でOK） ---
+    // --- ★ 魔法の関数：自由に追加＆削除できるカスタムプルダウン ---
     function updateFilterGenderOptions(list) {
         const filter = document.getElementById('filterGender');
         if (!filter) return;
@@ -151,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     options.classList.remove('active');
                 });
 
-                if (!defaultList.includes(item)) {
+                if (!defaultList.includes(item)) { // デフォルト以外は長押しで削除可能
                     let timer;
                     const startPress = () => {
                         isLongPress = false;
@@ -220,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // ★ 4つの項目をダイナミックセレクトとしてセットアップ
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別');
     const selectAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'pcAgeDisplay', 'pcAgeHidden', 'pcAgeOptions', '年齢');
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
@@ -304,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fHO !== '' && (!latestHistory.ho || !latestHistory.ho.toLowerCase().includes(fHO))) return;
 
             if (fScenario !== '') {
-                if(!pc.history) return;
                 const matchScen = pc.history.some(h => h.scenario.toLowerCase().includes(fScenario));
                 if (!matchScen) return;
             }
@@ -347,14 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('pcHitCount').innerText = hitCount;
     }
 
-    // ==========================================
-    // ★ 3. Firebaseへのデータ保存・更新処理
-    // ==========================================
-
-    // --- 新規登録（Firebaseに保存） ---
+    // --- 新規登録 ---
     document.getElementById('btnAddPc').addEventListener('click', () => {
-        if (!currentUser) return alert("ログインしてください");
-
         const name = document.getElementById('pcName').value.trim();
         const gender = document.getElementById('pcGenderHidden').value;
         const age = document.getElementById('pcAgeHidden').value;
@@ -387,33 +335,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!hScen) { alert('初回シナリオ名は必須です'); return; }
 
-        const now = Date.now();
         const newPc = {
+            id: Date.now().toString(),
             system, name, gender, age, race, job, tags, url, image: currentImageBase64,
             stats: parsedStats, skills: parsedSkills,
-            history: [{ scenario: hScen, ho: hHO, date: hDate, status: hStatus }],
-            createdAt: now,
-            updatedAt: now
+            history: [{ scenario: hScen, ho: hHO, date: hDate, status: hStatus }]
         };
+        pcData.unshift(newPc);
+        saveData();
 
-        // Firebaseの金庫に追加！
-        db.collection("users").doc(currentUser.uid).collection("characters").add(newPc).then(() => {
-            // フォームのリセット
-            document.getElementById('pcName').value = '';
-            document.getElementById('pcTags').value = '';
-            document.getElementById('pcUrl').value = '';
-            document.getElementById('pcIachara').value = '';
-            document.getElementById('histScenario').value = '';
-            document.getElementById('histHO').value = '';
-            const histDate = document.getElementById('histDate');
-            histDate.value = ''; histDate.type = 'text';
+        // フォームのリセット
+        document.getElementById('pcName').value = '';
+        document.getElementById('pcTags').value = '';
+        document.getElementById('pcUrl').value = '';
+        document.getElementById('pcIachara').value = '';
+        document.getElementById('histScenario').value = '';
+        document.getElementById('histHO').value = '';
+        const histDate = document.getElementById('histDate');
+        histDate.value = ''; histDate.type = 'text';
 
-            selectGender.reset(); selectAge.reset(); selectRace.reset(); selectJob.reset();
-            document.getElementById('btnClearImage').click();
-        });
+        selectGender.reset(); selectAge.reset(); selectRace.reset(); selectJob.reset();
+        document.getElementById('btnClearImage').click();
     });
 
-    // --- 継続シナリオの追加（Firebaseのデータを更新） ---
     window.openContinueModal = (id) => {
         targetPcIdForContinue = id;
         const pc = pcData.find(p => p.id === id);
@@ -427,50 +371,34 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('contStatusDisplay').innerText = '生還';
         document.getElementById('continueModal').style.display = 'flex';
     };
-
-    window.closeContinueModal = () => {
-        document.getElementById('continueModal').style.display = 'none';
-        targetPcIdForContinue = null;
-    };
-
+    window.closeContinueModal = () => { document.getElementById('continueModal').style.display = 'none'; targetPcIdForContinue = null; };
     window.saveContinueHistory = () => {
         if(!targetPcIdForContinue) return;
-        const pc = pcData.find(p => p.id === targetPcIdForContinue);
-        if(!pc) return;
-
+        const pcIndex = pcData.findIndex(p => p.id === targetPcIdForContinue);
+        if(pcIndex === -1) return;
         const scenario = document.getElementById('contScenario').value.trim();
         if(!scenario) { alert('シナリオ名は必須です'); return; }
-
-        const newHist = {
-            scenario: scenario,
-            date: document.getElementById('contDate').value,
-            ho: document.getElementById('contHO').value.trim(),
-            status: document.getElementById('contStatusHidden').value
-        };
-
-        // 現在の履歴の一番上（先頭）に新しい履歴を追加
-        const updatedHistory = [newHist, ...(pc.history || [])];
-
-        // Firebaseの金庫を上書き更新！
-        db.collection("users").doc(currentUser.uid).collection("characters").doc(targetPcIdForContinue)
-          .set({ history: updatedHistory, updatedAt: Date.now() }, { merge: true })
-          .then(() => {
-              closeContinueModal();
-          });
+        const newHist = { scenario: scenario, date: document.getElementById('contDate').value, ho: document.getElementById('contHO').value.trim(), status: document.getElementById('contStatusHidden').value };
+        if (!pcData[pcIndex].history) pcData[pcIndex].history = [];
+        pcData[pcIndex].history.unshift(newHist);
+        saveData(); closeContinueModal();
     };
-
-    // --- 削除処理（Firebaseから削除） ---
     window.deletePc = (id) => {
         if (confirm('この探索者のデータを完全に削除しますか？')) {
-            db.collection("users").doc(currentUser.uid).collection("characters").doc(id).delete();
+            pcData = pcData.filter(p => p.id !== id);
+            saveData();
         }
     };
-
-    // 詳細画面・編集画面への遷移（これだけは今まで通りlocalStorageでIDを渡します）
     window.openDetail = (id) => {
         localStorage.setItem('trpg_current_pc_id', id);
-        window.location.href = './detail.html'; // ※ファイル名は適宜合わせてください
+        window.location.href = './detail.html';
     };
 
+    function saveData() {
+        localStorage.setItem('trpg_pcs_v1', JSON.stringify(pcData));
+        renderPcList();
+    }
+
     renderSystemTabs();
+    renderPcList();
 });

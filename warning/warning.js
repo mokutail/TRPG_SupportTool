@@ -1,91 +1,5 @@
-// ==========================================
-// ★ Firebaseの初期設定
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
-  authDomain: "trpg-supporttool.firebaseapp.com",
-  projectId: "trpg-supporttool",
-  storageBucket: "trpg-supporttool.firebasestorage.app",
-  messagingSenderId: "163289928352",
-  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
-};
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentUser = null;
-let saveTimeout = null; // オートセーブ用のタイマー
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ==========================================
-    // ★ 2. ログインチェックと下書きの読み込み
-    // ==========================================
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUser = user;
-            loadDraftFromFirebase(); // ログインしたら金庫から下書きを取り出す！
-        } else {
-            alert("データの同期にはログインが必要です。トップページに戻ります。");
-            window.location.href = '../index.html';
-        }
-    });
-
-    // データベースから下書きを読み込む処理
-    function loadDraftFromFirebase() {
-        db.collection("users").doc(currentUser.uid).collection("settings").doc("warning_draft")
-            .get().then((doc) => {
-                if (doc.exists) {
-                    applyFormState(doc.data());
-                }
-            }).catch(err => console.error("下書きの読み込みに失敗しました:", err));
-    }
-
-    // データベースへ下書きを保存する処理（オートセーブ）
-    function triggerSave() {
-        if (!currentUser) return;
-        clearTimeout(saveTimeout);
-        // 入力が終わってから1秒（1000ミリ秒）後に自動保存する
-        saveTimeout = setTimeout(() => {
-            const state = getFormState();
-            db.collection("users").doc(currentUser.uid).collection("settings").doc("warning_draft")
-              .set(state, { merge: true })
-              .then(() => console.log("クラウドに下書きを自動保存しました！"));
-        }, 1000);
-    }
-
-    // 現在の入力状態を取得する関数
-    function getFormState() {
-        const checkedIds = [];
-        // チェックがついている項目のIDをすべて集める
-        document.querySelectorAll('#warning-categories-container input[type="checkbox"]:checked').forEach(cb => {
-            checkedIds.push(cb.id);
-        });
-        return {
-            title: document.getElementById('warnTitle').value,
-            checkedIds: checkedIds
-        };
-    }
-
-    // 取得したデータを画面に反映させる関数
-    function applyFormState(data) {
-        if (!data) return;
-        if (data.title !== undefined) {
-            document.getElementById('warnTitle').value = data.title;
-        }
-        if (data.checkedIds && Array.isArray(data.checkedIds)) {
-            document.querySelectorAll('#warning-categories-container input[type="checkbox"]').forEach(cb => {
-                cb.checked = data.checkedIds.includes(cb.id);
-            });
-        }
-        drawWarningImage(); // 反映後に画像を再描画
-    }
-
-    // ==========================================
-    // 既存のUI・Canvas描画コード
-    // ==========================================
     const warningData = [
         { category: "【ロスト・死】", items: ["PCの確定ロスト(救済なし)", "NPCの確定ロスト", "PC/NPC の出目によるロスト・死", "PC/NPCの選択によるロスト・死", "倫理的な選択でのロスト", "他PCやNPCだけの出目・選択でのロスト", "死に戻り・ループ", "永久ロスト", "実は死んでいる・実は人外", "余命付与", "自殺の描写・自殺の情報", "PC/NPCが自殺する(志願含む)", "安楽死・尊厳死の強要"] },
         { category: "【いじめ・差別・虐待】", items: ["いじめの情報・描写", "いじめる・いじめられる", "大勢から責められる", "差別の情報・描写(する/される)", "虐待の情報・描写(虐待する/される)", "罵声・罵り合い", "一方的に悪く思われる・恨まれる"] },
@@ -118,17 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
             div.innerHTML = html;
             warnContainer.appendChild(div);
         });
-
-        // ★ 修正：入力やチェックがあるたびに、再描画 ＋ Firebaseに自動保存！
-        document.querySelectorAll('.view input').forEach(input => {
-            input.addEventListener('input', () => {
-                drawWarningImage();
-                triggerSave();
-            });
-            input.addEventListener('change', () => {
-                drawWarningImage();
-                triggerSave();
-            });
+        document.querySelectorAll('#warning-view input').forEach(input => {
+            input.addEventListener('input', drawWarningImage);
+            input.addEventListener('change', drawWarningImage);
         });
     }
 
@@ -156,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wCtx.font = 'bold 28px sans-serif';
         wCtx.fillText(`シナリオ名: ${warnTitleInput.value || '未設定'}`, 60, 215);
 
-        // 左右カラムの分割バランスを最適化する計算
+        // ★ 修正：左右カラムの分割バランスを最適化する計算
         let sectionHeights = warningData.map(sec => 40 + (sec.items.length * 28) + 42);
         let totalContentHeight = sectionHeights.reduce((a, b) => a + b, 0);
         let halfHeight = totalContentHeight / 2;
@@ -164,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let splitIndex = 1;
         let accumulated = 0;
         for (let i = 0; i < sectionHeights.length; i++) {
+            // そのセクションの「半分」が中央線を越えたら、右カラムに回す
             if (accumulated + (sectionHeights[i] / 2) >= halfHeight) {
                 splitIndex = i;
                 break;
@@ -226,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 warnTitleInput.value = "";
                 document.querySelectorAll('#warning-categories-container input[type="checkbox"]').forEach(cb => cb.checked = false);
                 drawWarningImage();
-                triggerSave(); // ★ リセット状態もクラウドに保存！
             }
         }, 150);
     };
