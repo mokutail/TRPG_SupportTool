@@ -167,4 +167,27 @@
 #customConfirmModal .modal-btn-apply:active {
     background-color: #004d40 !important;
     transform: scale(1.1) !important;
+
+}
+
+/* ==========================================
+   📱 スマホ専用のレイアウト調整
+   ========================================== */
+@media screen and (max-width: 450px) {
+    /* タイトルの文字を少し小さくする */
+    .header-title {
+        font-size: 15px !important;
+    }
+    
+    /* ログイン・設定ボタンをコンパクトにする */
+    .setting-btn {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap; /* ボタンの文字を絶対に改行させない魔法 */
+    }
+
+    /* ヘッダー自体の余白も少しスッキリさせる */
+    .top-header {
+        padding: 15px 10px 10px 10px !important;
+    }
 }
