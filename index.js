@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#607d8b', href: 'warning/warning.html' },
         { id: 'scenario', label: '📚 自作シナリオ管理', color: '#607d8b', href: 'scenario/scenario.html' },
         { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
-        { id: 'table_want', label: '💭 行きたいシナリオ一覧', color: '#607d8b', href: 'scenario_want/scenario_want.html' }, // ★ID被りを修正しました
+        { id: 'table_want', label: '💭 行きたいシナリオ一覧', color: '#607d8b', href: 'scenario_want/scenario_want.html' },
         { id: 'table_kp', label: '🗓️ 卓管理', color: '#607d8b', href: 'kp/table_kp.html' },
         { id: 'table_pl', label: '🎲 探索者管理', color: '#607d8b', href: 'table/table_pl.html' }
     ];
@@ -96,7 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // まずは端末に残っている古いデータを読み込んでおく
     let currentMenu = JSON.parse(localStorage.getItem('trpg_menu_config'));
 
-    if (!currentMenu) {
+    // ★ ここが修正ポイント！もしデータが空っぽ（長さ0）だったら初期状態に戻して直す！
+    if (!currentMenu || currentMenu.length === 0) {
         currentMenu = JSON.parse(JSON.stringify(defaultMenu));
     } else {
         currentMenu = currentMenu.filter(m => m.id !== 'table');
@@ -124,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection("users").doc(currentUser.uid).collection("settings").doc("menu_config")
           .onSnapshot((doc) => {
               // doc.data().menu がちゃんと配列として存在するかチェック！
-              if (doc.exists && doc.data() && Array.isArray(doc.data().menu)) {
+              if (doc.exists && doc.data() && Array.isArray(doc.data().menu) && doc.data().menu.length > 0) {
                   // Firebaseにデータがあれば、それを採用する
                   const firebaseMenu = doc.data().menu;
 
@@ -406,5 +407,4 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsText(file);
         });
     }
-
 });
