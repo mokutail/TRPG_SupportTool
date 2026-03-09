@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            // ログイン成功時
             currentUser = user;
             authBtn.innerHTML = '<span class="btn-icon">🚪</span> ログアウト';
             authBtn.style.backgroundColor = "#ffebee";
@@ -37,18 +36,33 @@ document.addEventListener('DOMContentLoaded', () => {
             userInfoArea.style.display = "block";
             userNameDisplay.innerText = user.displayName || "名無し";
 
-            console.log("ログイン成功！ユーザーID:", user.uid);
-
-            // ★ 鉄壁のロック機能：この人が「認証済み」かデータベースに聞きに行く！
+            // ★ 究極の鉄壁ロック機能：この人が「認証済み」か、そして「パスワードはまだ金庫にあるか」を聞きに行く！
             try {
                 const userDoc = await db.collection("users").doc(currentUser.uid).get();
 
                 if (userDoc.exists && userDoc.data().hasValidOrder === true) {
-                    // 【認証済みの人】パスワード画面を消して、メニューを表示する！
-                    document.getElementById('passwordModal').style.display = 'none';
-                    startMenuSync();
+
+                    // 使った合言葉がまだ有効か（Firebaseの金庫にあるか）をチェック！
+                    const usedPass = userDoc.data().usedPassword;
+                    const passDoc = await db.collection("valid_passwords").doc(usedPass).get();
+
+                    if (passDoc.exists) {
+                        // まだ合言葉が金庫にあった！通す！
+                        document.getElementById('passwordModal').style.display = 'none';
+                        startMenuSync();
+                    } else {
+                        // ★司令官が合言葉を削除していた！権限を剥奪する！★
+                        await db.collection("users").doc(currentUser.uid).set({
+                            hasValidOrder: false,
+                            usedPassword: null
+                        }, { merge: true });
+
+                        alert("❌ 有効期限が切れたか、管理者の権限によりアクセスが取り消されました。");
+                        document.getElementById('home-view').innerHTML = '';
+                        document.getElementById('passwordModal').style.display = 'flex';
+                    }
                 } else {
-                    // 【初めての人】メニューを強制的に消して、パスワード画面を出す！
+                    // 【初めての人・権限がない人】メニューを強制的に消して、パスワード画面を出す！
                     document.getElementById('home-view').innerHTML = '';
                     document.getElementById('passwordModal').style.display = 'flex';
                 }
@@ -65,46 +79,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
             userInfoArea.style.display = "none";
             document.getElementById('passwordModal').style.display = 'none'; // ログアウト中は隠す
-            console.log("ログアウトしました");
 
             // ログアウト中はローカルのデータで表示する
             renderMenu();
         }
     });
 
-    // ★ 合言葉の認証ボタンを押したときの処理
+    // ★ 合言葉の認証ボタンを押したときの処理（パスワードの文字をJSから完全排除！）
     document.getElementById('btnVerifyOrder').addEventListener('click', async () => {
         const secretInput = document.getElementById('orderNumberInput').value.trim();
         if (!secretInput) return alert("合言葉を入力してください！");
 
-        // ==========================================
-        // 👑【ここで合言葉を設定します！】
-        // ==========================================
-        const CORRECT_PASSWORD = "8tail8-app-secret"; // ←一般購入者に伝える「合言葉」
-        const ADMIN_PASSWORD = "admin2026";         // ←司令官だけが使う「マスターキー」
+        try {
+            // 入力された文字の書類が、Firebaseの金庫にあるか確認するだけ！
+            const passDoc = await db.collection("valid_passwords").doc(secretInput).get();
 
-        // 入力された文字が、合言葉かマスターキーのどちらかと一致したら合格！
-        if (secretInput === CORRECT_PASSWORD || secretInput === ADMIN_PASSWORD) {
-            try {
-                // 合格したら、自分のプロフィールに「認証済み」マークをつける
+            if (passDoc.exists) {
+                // 合格！自分のプロフィールに「認証済み」マークと「使った合言葉」をメモする
                 await db.collection("users").doc(currentUser.uid).set({
                     hasValidOrder: true,
-                    orderNumber: "verified-by-password" // 重複チェックをしないので共通の文字列でOK
+                    usedPassword: secretInput
                 }, { merge: true });
 
                 alert("認証に成功しました！ツールをご利用いただけます🎉");
                 document.getElementById('passwordModal').style.display = 'none';
                 startMenuSync(); // メニューを表示！
 
-            } catch (error) {
-                alert("通信エラーが発生しました。");
-                console.error("認証エラー:", error);
+            } else {
+                // 書類がなかった場合！
+                alert("❌ 合言葉が間違っています。ダウンロードしたテキストファイル等を確認してください。");
             }
-        } else {
-            // 合言葉が間違っていた場合は弾く！
-            alert("❌ 合言葉が間違っています。ダウンロードしたテキストファイル等を確認してください。");
+
+        } catch (error) {
+            alert("通信エラーが発生しました。");
+            console.error("認証エラー:", error);
         }
     });
+
 
     // ボタンを押した時のアクション
     authBtn.addEventListener('click', () => {
