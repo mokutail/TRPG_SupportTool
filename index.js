@@ -24,9 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const userNameDisplay = document.getElementById('userNameDisplay');
 
     // ==========================================
-    // ★ ログイン・ログアウトの処理 ＆ メニューの同期
+    // ★ ログイン・ログアウトの処理 ＆ ツールロック機能
     // ==========================================
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(async (user) => { // ★ ここを async に変更！
         if (user) {
             // ログイン成功時
             currentUser = user;
@@ -39,8 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log("ログイン成功！ユーザーID:", user.uid);
 
-            // ★ Firebaseからメニューの色や並び順の設定を読み込む（リアルタイム同期）
-            startMenuSync();
+            // ★ 鉄壁のロック機能：この人が「認証済み」かデータベースに聞きに行く！
+            try {
+                const userDoc = await db.collection("users").doc(currentUser.uid).get();
+
+                if (userDoc.exists && userDoc.data().hasValidOrder === true) {
+                    // 【認証済みの人】パスワード画面を消して、メニューを表示する！
+                    document.getElementById('passwordModal').style.display = 'none';
+                    startMenuSync();
+                } else {
+                    // 【初めての人】メニューを強制的に消して、パスワード画面を出す！
+                    document.getElementById('home-view').innerHTML = '';
+                    document.getElementById('passwordModal').style.display = 'flex';
+                }
+            } catch (error) {
+                console.error("ユーザーデータの確認に失敗しました:", error);
+            }
 
         } else {
             // ログアウト時
@@ -50,12 +64,58 @@ document.addEventListener('DOMContentLoaded', () => {
             authBtn.style.color = "#0277bd";
 
             userInfoArea.style.display = "none";
+            document.getElementById('passwordModal').style.display = 'none'; // ログアウト中は隠す
             console.log("ログアウトしました");
 
             // ログアウト中はローカルのデータで表示する
             renderMenu();
         }
     });
+
+    // ★ 注文番号の認証ボタンを押したときの処理
+    document.getElementById('btnVerifyOrder').addEventListener('click', async () => {
+        const orderNum = document.getElementById('orderNumberInput').value.trim();
+        if (!orderNum) return alert("注文番号を入力してください！");
+
+        // 👑【管理者専用の合言葉】 ここに設定しました！
+        // 「admin2026」と入力すれば、他のチェックを全て無視して無条件で通します！
+        if (orderNum === "admin2026") {
+            await db.collection("users").doc(currentUser.uid).set({
+                hasValidOrder: true,
+                orderNumber: "admin-master"
+            }, { merge: true });
+
+            alert("👑 管理者権限でロックを解除しました！");
+            document.getElementById('passwordModal').style.display = 'none';
+            startMenuSync(); // メニューを表示！
+            return;
+        }
+
+        // 一般ユーザーのBOOTH番号チェック処理
+        try {
+            // ① 「used_orders」という金庫に、この番号を自分のものとして登録しようとする
+            await db.collection("used_orders").doc(orderNum).set({
+                usedBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // ② 成功したら、自分のプロフィールに「認証済み」マークをつける
+            await db.collection("users").doc(currentUser.uid).set({
+                hasValidOrder: true,
+                orderNumber: orderNum
+            }, { merge: true });
+
+            alert("認証に成功しました！ツールをご利用いただけます🎉");
+            document.getElementById('passwordModal').style.display = 'none';
+            startMenuSync(); // メニューを表示！
+
+        } catch (error) {
+            // ③ エラーが出たら、誰かがもう使っているということ！
+            alert("❌ この注文番号はすでに他のユーザーによって使用されています。正しい番号を確認してください。");
+            console.error("認証エラー:", error);
+        }
+    });
+
 
     // ボタンを押した時のアクション
     authBtn.addEventListener('click', () => {
@@ -93,10 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'table_pl', label: '🎲 探索者管理', color: '#607d8b', href: 'table/table_pl.html' }
     ];
 
-    // まずは端末に残っている古いデータを読み込んでおく
     let currentMenu = JSON.parse(localStorage.getItem('trpg_menu_config'));
 
-    // ★ ここが修正ポイント！もしデータが空っぽ（長さ0）だったら初期状態に戻して直す！
     if (!currentMenu || currentMenu.length === 0) {
         currentMenu = JSON.parse(JSON.stringify(defaultMenu));
     } else {
@@ -120,16 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingId = null;
     let favorites = JSON.parse(localStorage.getItem('trpg_fav_colors')) || Array(8).fill('#FFFFFF');
 
-    // ★ メニューの同期システム（エラーに強い頑丈バージョン！）
     function startMenuSync() {
         db.collection("users").doc(currentUser.uid).collection("settings").doc("menu_config")
           .onSnapshot((doc) => {
-              // doc.data().menu がちゃんと配列として存在するかチェック！
               if (doc.exists && doc.data() && Array.isArray(doc.data().menu) && doc.data().menu.length > 0) {
-                  // Firebaseにデータがあれば、それを採用する
                   const firebaseMenu = doc.data().menu;
-
-                  // 足りない項目（アップデートで増えたツールなど）があれば補充する
                   defaultMenu.forEach(def => {
                       if (!firebaseMenu.find(m => m.id === def.id)) {
                           firebaseMenu.push(JSON.parse(JSON.stringify(def)));
@@ -137,20 +190,15 @@ document.addEventListener('DOMContentLoaded', () => {
                   });
                   currentMenu = firebaseMenu;
               } else {
-                  // まだFirebaseに保存されていなければ、今の設定を保存する
                   saveConfig();
               }
-              // 必ずメニューを描画する！
               renderMenu();
-              
           }, (error) => {
-              // 万が一エラーが起きても止まらせない！
               console.error("メニュー同期エラー:", error);
-              renderMenu(); // エラー時もローカルデータでとりあえず表示！
+              renderMenu();
           });
     }
 
-    // ★ 保存システム（ローカルにもFirebaseにも両方保存する）
     const saveConfig = () => {
         localStorage.setItem('trpg_menu_config', JSON.stringify(currentMenu));
         if (currentUser) {

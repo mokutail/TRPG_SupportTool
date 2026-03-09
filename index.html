@@ -62,6 +62,18 @@
     </div>
 </div>
 
+<div id="passwordModal" class="color-modal-overlay" style="display:none; background: rgba(0,0,0,0.9);">
+    <div class="color-modal" style="max-width: 350px;">
+        <h3 style="margin-top:0; color:#76ADAF; text-align:center; font-size:18px;">🔐 ツール有効化</h3>
+        <p style="font-size:12px; color:#666; line-height:1.5; margin-bottom:15px;">
+            BOOTHで購入時のお手元にある<b>「注文番号（8桁等の数字）」</b>を入力してアプリを有効化してください。<br>
+            <span style="color:#d32f2f;">※1つの番号につき1アカウントのみ有効です。</span>
+        </p>
+        <input type="text" id="orderNumberInput" placeholder="例: 12345678" style="width:100%; box-sizing:border-box; border:2px solid #eee; border-radius:10px; padding:12px; font-size:16px; font-weight:bold; text-align:center; outline:none; margin-bottom:15px;">
+        <button id="btnVerifyOrder" style="width:100%; padding:15px; background:#76ADAF; border:none; border-radius:12px; font-weight:bold; color:#fff; font-size:15px; cursor:pointer;">認証して利用開始</button>
+    </div>
+</div>
+
 <div id="customConfirmModal" class="color-modal-overlay">
     <div class="color-modal">
         <h3 id="confirmMessage" style="margin-top:0; color:#555; text-align:center; font-size:16px; line-height:1.6;"></h3>
