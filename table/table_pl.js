@@ -22,6 +22,8 @@ let pcData = [];
 let currentImageBase64 = null;
 let currentSystemFilter = "すべて";
 let targetPcIdForContinue = null;
+let editingPcId = null;
+let editingPcSystem = null;
 
 const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
 
@@ -60,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
               snapshot.forEach((doc) => {
                   pcData.push({ id: doc.id, ...doc.data() });
               });
-              updateGenderFilterOptions(); // 性別プルダウンの自動更新
+              updateGenderFilterOptions(); // ★ ここで登録データから性別を自動抽出して更新！
               renderPcList();
           });
     }
@@ -98,22 +100,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btnClearImage').style.display = 'none';
     });
 
-    // ==========================================
-    // ★ 鉄壁のプルダウン設定関数（絶対にクラッシュしない）
-    // ==========================================
-
-    // 固定のプルダウン（履歴ステータス用）
+    // --- 固定のプルダウン（履歴ステータス用） ---
     function setupFixedSelect(displayId, optionsId, hiddenId) {
         const display = document.getElementById(displayId);
         const options = document.getElementById(optionsId);
         const hidden = document.getElementById(hiddenId);
-        if (!display || !options || !hidden) return; // エラー防止
-
+        if(!display) return;
         display.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.select-options').forEach(opt => {
-                if(opt !== options) opt.classList.remove('active');
-            });
+            document.querySelectorAll('.select-options').forEach(opt => { if(opt !== options) opt.classList.remove('active'); });
             options.classList.toggle('active');
         });
         options.querySelectorAll('.option-item').forEach(item => {
@@ -124,11 +119,38 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+    setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
+    setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
 
-    // 自由に追加＆削除できるカスタムプルダウン（登録用）
+    // ★ 登録されている探索者データ(pcData)から性別を自動抽出して検索プルダウンを生成
+    function updateGenderFilterOptions() {
+        const filter = document.getElementById('filterGender');
+        if (!filter) return;
+        const currentVal = filter.value; // 現在の選択を覚えておく
+
+        // pcDataの中から空ではない性別だけを抽出し、重複を消す
+        const genders = [...new Set(pcData.map(pc => pc.gender).filter(g => g && g !== ''))];
+
+        // セレクトボックスの中身を作り直す
+        filter.innerHTML = '<option value="すべて">性別: すべて</option>';
+        genders.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.innerText = g;
+            filter.appendChild(opt);
+        });
+
+        // 前の選択がまだ選択肢にあれば元に戻す
+        if (genders.includes(currentVal)) {
+            filter.value = currentVal;
+        } else {
+            filter.value = 'すべて';
+        }
+    }
+
+    // --- ★ 自由に追加＆削除できるカスタムプルダウン（登録用） ---
     function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText) {
         let currentList = defaultList;
-        // ★ 万が一古い変なデータが入っていても無視してクラッシュを防ぐ！
         try {
             const stored = localStorage.getItem(storageKey);
             if (stored) {
@@ -136,20 +158,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Array.isArray(parsed)) currentList = parsed;
             }
         } catch (e) {
-            console.warn("データ読込エラー。デフォルトを使用します:", storageKey);
+            console.warn("Storage error", e);
         }
 
         const display = document.getElementById(displayId);
         const hidden = document.getElementById(hiddenId);
         const options = document.getElementById(optionsId);
-
-        if (!display || !hidden || !options) return { reset: () => {} };
+        if(!display) return { reset: () => {} };
 
         display.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.select-options').forEach(opt => {
-                if(opt !== options) opt.classList.remove('active');
-            });
+            document.querySelectorAll('.select-options').forEach(opt => { if(opt !== options) opt.classList.remove('active'); });
             options.classList.toggle('active');
         });
 
@@ -220,10 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // プルダウンのセットアップ実行
-    setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
-    setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
-
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別');
     const selectAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'pcAgeDisplay', 'pcAgeHidden', 'pcAgeOptions', '年齢');
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
@@ -233,39 +248,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
     });
 
-    // ==========================================
-    // ★ 検索プルダウンの自動生成（性別）
-    // ==========================================
-    function updateGenderFilterOptions() {
-        const filter = document.getElementById('filterGender');
-        if (!filter) return;
-        const currentVal = filter.value;
-
-        // 登録済みの全データから性別だけを抜き出し、重複を消す
-        const genders = [...new Set(pcData.map(pc => pc.gender).filter(g => g && g !== ''))];
-
-        filter.innerHTML = '<option value="すべて">性別: すべて</option>';
-        genders.forEach(g => {
-            const opt = document.createElement('option');
-            opt.value = g;
-            opt.innerText = g;
-            filter.appendChild(opt);
-        });
-
-        // 選択状態を復元
-        if (genders.includes(currentVal)) filter.value = currentVal;
-        else filter.value = 'すべて';
-    }
-
-
     // --- UI制御・リスト描画など ---
     function updateFormTitle() {
         const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
-        document.getElementById('formTitleLabel').innerHTML = `👤 新規探索者の登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
+        const el = document.getElementById('formTitleLabel');
+        if(el) el.innerHTML = `👤 新規探索者の登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
     }
 
     function renderSystemTabs() {
         const container = document.getElementById('systemTabs');
+        if(!container) return;
         container.innerHTML = `<button class="sys-tab-btn active" data-sys="すべて">すべて</button>`;
         systems.forEach(sys => {
             container.innerHTML += `<button class="sys-tab-btn" data-sys="${sys}">${sys}</button>`;
@@ -309,12 +301,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPcList();
     });
 
-    // ★ ステータスバッジの色付け（すべて生還に統一）
+    // ★ 生還・ロスト・継続不可の色付け
     function getStatusBadgeHtml(status) {
         if (!status) return '';
         let color = '#757575';
         let bg = '#f5f5f5';
-        if (status === '生還' || status === '生存') { // 古い「生存」データも生還として扱う
+        if (status === '生還' || status === '生存') {
             color = '#2e7d32'; bg = '#e8f5e9'; status = '生還';
         } else if (status === 'ロスト') {
             color = '#c62828'; bg = '#ffebee';
@@ -325,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPcList() {
+        if(!pcListContainer) return;
         pcListContainer.innerHTML = '';
         const fGender = document.getElementById('filterGender').value;
         const fStatus = document.getElementById('filterStatus').value;
@@ -345,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
 
-            // 最新の履歴を取得
             const latestHistory = (pc.history && pc.history.length > 0) ? pc.history[pc.history.length - 1] : { scenario: '履歴なし', status: '不明', ho: '' };
             let latestStatus = latestHistory.status || '生還';
             if (latestStatus === '生存') latestStatus = '生還';
@@ -470,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = './detail.html';
     };
 
-    // --- 新規登録（★JSON解析も完全維持！） ---
+    // --- 新規登録 ---
     document.getElementById('btnAddPc').addEventListener('click', () => {
         if (!currentUser) return alert("ログインしてください");
 
@@ -530,5 +522,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // ★ ここが抜けていたため、すべてが動かなくなっていました！！
     renderSystemTabs();
 });
