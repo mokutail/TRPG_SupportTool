@@ -287,8 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
         let hitCount = 0;
 
+        // ★ ここが共通の可愛いデザインに書き換えた部分です！
         if (pcData.length === 0) {
-            pcListContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">登録された探索者はいません</div>';
+            pcListContainer.innerHTML = '<div class="empty-message-box">登録された探索者はいません</div>';
             document.getElementById('pcHitCount').innerText = "0"; return;
         }
 

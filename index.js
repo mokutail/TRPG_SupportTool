@@ -295,11 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnModalCancel').onclick = () => colorModal.style.display = 'none';
 
     editToggle.addEventListener('click', () => {
-        isEditMode = !isEditMode;
-        settingsPanel.style.display = isEditMode ? 'block' : 'none';
-        editToggle.innerText = isEditMode ? '✅ 完了' : '⚙️ 設定';
-        renderMenu();
-    });
+            isEditMode = !isEditMode;
+            settingsPanel.style.display = isEditMode ? 'block' : 'none';
+            editToggle.innerHTML = isEditMode ? '<span class="btn-icon-only">✅</span><span class="btn-text-hide"> 完了</span>' : '<span class="btn-icon-only">⚙️</span><span class="btn-text-hide"> 設定</span>';
+            renderMenu();
+        });
 
     window.moveItem = (index, dir) => {
         const next = index + dir;
@@ -408,4 +408,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-

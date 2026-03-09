@@ -174,23 +174,25 @@
    📱 スマホ専用のレイアウト調整
    ========================================== */
 @media screen and (max-width: 450px) {
-    /* ▼ アイコンをスマホの時だけ消す魔法！ ▼ */
+    /* ログインボタンのアイコンを消す */
     .btn-icon {
+        display: none;
+    }
+
+    /* 設定ボタンの「文字」を消す */
+    .btn-text-hide {
         display: none;
     }
 
     /* ログインボタンなどをコンパクトにする */
     .setting-btn {
         padding: 8px 12px !important;
-        font-size: 11px !important; /* 文字を少し小さく */
-        white-space: nowrap; 
+        font-size: 11px !important;
+        white-space: nowrap;
     }
 
-    /* 設定ボタンをアイコン（⚙️/✅）だけにする魔法 */
+    /* 設定ボタンの形を整える */
     #toggleEditMode {
-        width: 36px !important;
-        padding-left: 10px !important;
-        overflow: hidden;
-        text-align: left;
+        padding: 8px 10px !important;
     }
 }

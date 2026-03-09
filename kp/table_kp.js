@@ -17,7 +17,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
-let kpData = []; // localStorageの代わりに空の配列を用意
+let kpData = [];
 let currentImageBase64 = null;
 let currentSystemFilter = "すべて";
 let editingId = null;
@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function startRealtimeSync() {
-        // "table_kp" という名前の引き出しを監視する
         db.collection("users").doc(currentUser.uid).collection("table_kp")
           .orderBy("createdAt", "desc")
           .onSnapshot((snapshot) => {
@@ -51,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
               snapshot.forEach((doc) => {
                   kpData.push({ id: doc.id, ...doc.data() });
               });
-              renderKpList(); // データが変わるたびに自動で画面更新！
+              renderKpList();
           });
     }
 
@@ -197,8 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const fStatus = document.getElementById('filterStatusHidden').value;
         let hitCount = 0;
 
+        // ★ ここが共通の可愛いデザインに書き換えた部分です！
         if (kpData.length === 0) {
-            kpListContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-weight:bold;">登録されたKP卓はありません</div>';
+            kpListContainer.innerHTML = '<div class="empty-message-box">登録されたKP卓はありません</div>';
             hitCountDisplay.innerText = "0"; return;
         }
 
@@ -232,14 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (kp.ccfoliaUrl) {
                 linksHtml += `<a href="${kp.ccfoliaUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#c8e6c9; color:#2e7d32; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🎲 ココフォリア</a>`;
             }
-
             if (kp.url && !kp.ccfoliaUrl && !kp.docUrl && !kp.boothUrl) {
                 linksHtml += `<a href="${kp.url}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#e0f2f1; color:#00695c; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🔗 ココフォリアURL</a>`;
             }
 
             const linksContainer = linksHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">${linksHtml}</div>` : '';
 
-            // ★ HTML部分
+            // ★ 修正箇所：レイアウトのHTMLの組み立て方を「探索者管理（table_pl）」と同じに直しました！
             item.innerHTML = `
                 <div class="item-actions-corner">
                     <button class="corner-btn continue" onclick="createNextZin('${kp.id}')">次陣を作成</button>
@@ -252,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="status-badge ${statusClass}" style="margin:0; text-align:center;">${kp.status}</span>
                         <span style="font-size:10px; color:#999; font-weight:bold; text-align:center;">${kp.system}</span>
                     </div>
-                    <div class="pl-list-content" style="margin-top: 28px;">
+                    <div class="pl-list-content">
                         <div class="item-header" style="padding-right:0; margin-bottom:4px;">
                             <div class="item-title" style="margin-top:0;">${kp.scenario}</div>
                             <div class="item-subtitle" style="margin-bottom:4px;">第 ${kp.zin || 1} 陣</div>
@@ -396,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('btnClearImage').click();
         }
 
-        editingId = null; // ★ IDを消すことで「新規登録」扱いにする
+        editingId = null;
         document.getElementById('formTitleLabel').innerText = `✨ ${kp.scenario} の次陣を作成 (${kp.system})`;
         const btn = document.getElementById('btnAddKp');
         btn.innerText = '新しい陣を追加';

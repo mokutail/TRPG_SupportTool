@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let hitCount = 0;
 
         if (scenarios.length === 0) {
-            scList.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:14px; font-weight:bold;">登録されたシナリオはありません</div>';
+            scList.innerHTML = '<div class="empty-message-box">登録されたシナリオはありません</div>';
             hitCountDisplay.innerText = "0";
             return;
         }

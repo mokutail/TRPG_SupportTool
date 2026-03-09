@@ -153,9 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const fStatus = document.getElementById('filterStatusHidden').value;
         let hitCount = 0;
 
-        if (possData.length === 0) {
-            listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-weight:bold;">登録されたシナリオはありません</div>';
-            hitCountDisplay.innerText = "0"; return;
+        if (scenarios.length === 0) {
+                    scList.innerHTML = '<div class="empty-message-box">登録された行きたいシナリオはありません</div>';
+                    hitCountDisplay.innerText = "0";
+                    return;
         }
 
         possData.forEach((item) => {
