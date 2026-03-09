@@ -6,6 +6,33 @@
     <title>探索者管理ツール</title>
     <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="table.css">
+    <style>
+        /* ★ 追加：可愛いプルダウン（検索用）のスタイル */
+        .cute-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            background-color: #fff;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2376ADAF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 15px top 50%;
+            background-size: 12px auto;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            outline: none;
+        }
+        .cute-select:focus {
+            border-color: #76ADAF;
+            box-shadow: 0 0 0 3px rgba(118, 173, 175, 0.2);
+        }
+    </style>
 </head>
 <body class="body">
 <h2 class="tool-header">
@@ -26,13 +53,13 @@
                 <input type="text" id="filterScenario" placeholder="シナリオ名で検索" class="sc-band-input" style="flex:1;">
             </div>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <select id="filterGender" class="sc-band-select" style="flex:1;">
-                    <option value="すべて">すべて</option>
+                <select id="filterGender" class="cute-select" style="flex:1;">
+                    <option value="すべて">性別: すべて</option>
                 </select>
-                <select id="filterStatus" class="sc-band-select" style="flex:1;">
-                    <option value="すべて">すべて</option>
-                    <option value="生還">生還</option>
-                    <option value="ロスト">ロスト</option>
+
+                <select id="filterStatus" class="cute-select" style="flex:1;">
+                    <option value="すべて">状態: すべて</option>
+                    <option value="生還">生還</option> <option value="ロスト">ロスト</option>
                     <option value="継続不可">継続不可</option>
                 </select>
             </div>
@@ -40,8 +67,8 @@
                 <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="flex:1;">
                 <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
             </div>
-            <button id="btnResetFilter">🔄 絞り込みをリセット</button>
-            <div class="hit-count-display">該当件数: <strong id="pcHitCount">0</strong> 件</div>
+            <button id="btnResetFilter" style="width:100%; padding:12px; border-radius:12px; border:2px solid #eee; background:#fff; font-weight:bold; color:#76ADAF; cursor:pointer;">🔄 絞り込みをリセット</button>
+            <div class="hit-count-display" style="text-align:right; font-size:12px; color:#888; margin-top:10px;">該当件数: <strong id="pcHitCount" style="color:#76ADAF; font-size:16px;">0</strong> 件</div>
         </div>
     </div>
 
@@ -110,18 +137,15 @@
                     <input type="text" id="histDate" placeholder="通過日" class="sc-band-input" style="flex:1;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
                 </div>
                 <div class="custom-select-wrapper" id="histStatusWrapper">
-                    <div class="select-display" id="histStatusDisplay">生還</div>
-                    <div class="select-options" id="histStatusOptions">
-                        <div class="option-item" data-value="生還">生還</div>
-                        <div class="option-item" data-value="ロスト">ロスト</div>
-                        <div class="option-item" data-value="継続不可">継続不可</div>
-                    </div>
+                    <div class="select-display" id="histStatusDisplay">生還</div> <div class="select-options" id="histStatusOptions">
+                    <div class="option-item" data-value="生還">生還</div> <div class="option-item" data-value="ロスト">ロスト</div>
+                    <div class="option-item" data-value="継続不可">継続不可</div>
                 </div>
-                <input type="hidden" id="histStatusHidden" value="生還">
-            </div>
+                </div>
+                <input type="hidden" id="histStatusHidden" value="生還"> </div>
         </div>
 
-        <button class="action-btn" id="btnAddPc">リストに追加</button>
+        <button class="action-btn" id="btnAddPc" style="width:100%; padding:15px; background:#76ADAF; color:#fff; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(118,173,175,0.3);">リストに追加</button>
     </div>
 
     <div class="input-group">
@@ -130,26 +154,23 @@
     </div>
 </div>
 
-<div id="continueModal" class="modal-overlay">
-    <div class="modal-content">
+<div id="continueModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:2000;">
+    <div class="modal-content" style="background:#fff; width:90%; max-width:350px; padding:25px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
         <h3 style="margin-top:0; color:#333; font-size:16px;">🚀 継続シナリオの追加</h3>
-        <p id="continuePcName" style="font-size:14px; color:#76ADAF; font-weight:bold; margin-bottom:15px;"></p>
+        <p id="continuePcName" style="font-size:14px; color:#76ADAF; font-weight:bold; margin-bottom:15px; text-align:center;"></p>
         <input type="text" id="contScenario" placeholder="シナリオ名" class="sc-band-input" style="margin-bottom:10px;">
         <input type="text" id="contDate" placeholder="通過日" class="sc-band-input" style="margin-bottom:10px;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
         <input type="text" id="contHO" placeholder="HO (任意)" class="sc-band-input" style="margin-bottom:10px;">
-        <div class="custom-select-wrapper" id="contStatusWrapper" style="margin-bottom:10px;">
-            <div class="select-display" id="contStatusDisplay">生還</div>
-            <div class="select-options" id="contStatusOptions">
-                <div class="option-item" data-value="生還">生還</div>
-                <div class="option-item" data-value="ロスト">ロスト</div>
-                <div class="option-item" data-value="継続不可">継続不可</div>
-            </div>
+        <div class="custom-select-wrapper" id="contStatusWrapper" style="margin-bottom:20px;">
+            <div class="select-display" id="contStatusDisplay">生還</div> <div class="select-options" id="contStatusOptions">
+            <div class="option-item" data-value="生還">生還</div> <div class="option-item" data-value="ロスト">ロスト</div>
+            <div class="option-item" data-value="継続不可">継続不可</div>
         </div>
-        <input type="hidden" id="contStatusHidden" value="生還">
-        <div class="modal-actions">
-            <button class="modal-btn-cancel" onclick="closeContinueModal()">キャンセル</button>
-            <button class="modal-btn-apply" onclick="saveContinueHistory()">追加する</button>
         </div>
+        <input type="hidden" id="contStatusHidden" value="生還"> <div class="modal-actions" style="display:flex; gap:10px;">
+        <button class="modal-btn-cancel" onclick="closeContinueModal()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#eee; color:#666; font-weight:bold; cursor:pointer;">キャンセル</button>
+        <button class="modal-btn-apply" onclick="saveContinueHistory()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#76ADAF; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
+    </div>
     </div>
 </div>
 
