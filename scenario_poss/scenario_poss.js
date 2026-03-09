@@ -10,38 +10,6 @@ const firebaseConfig = {
   appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
 };
 
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        try {
-            const userDoc = await db.collection("users").doc(user.uid).get();
-            const userData = userDoc.exists ? userDoc.data() : {};
-            const usedPass = userData.usedPassword || "";
-
-            // 管理者(admin)ならそのまま通す
-            if (usedPass === "admin2003" || usedPass.includes("admin")) {
-                return; // 許可！そのままツールの処理へ
-            }
-
-            // DLCを持っているかチェック
-            const dlcSnapshot = await db.collection("users").doc(user.uid).collection("dlc").get();
-            const hasDLC = !dlcSnapshot.empty;
-
-            // 管理者でもなく、DLCも持っていなければ、不正アクセスとみなして追い出す！
-            if (!hasDLC) {
-                alert("❌ この機能を利用するには、追加コンテンツ(DLC)の解放が必要です。");
-                window.location.href = "../index.html"; // トップページへ強制送還！
-            }
-
-        } catch (error) {
-            console.error("権限チェックエラー:", error);
-            window.location.href = "../index.html"; // エラー時も安全のため追い出す
-        }
-    } else {
-        // そもそもログインしていなければトップへ追い出す
-        window.location.href = "../index.html";
-    }
-});
-
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
