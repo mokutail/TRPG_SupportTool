@@ -22,7 +22,7 @@ let editingId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
-    // ★ 2. ログインチェックとリアルタイム同期
+    // ★ ログインチェックとリアルタイム同期
     // ==========================================
     auth.onAuthStateChanged((user) => {
         if (user) {
@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // UI制御のコード
     // ==========================================
-    const listContainer = document.getElementById('possListContainer');
+    // ★ ここを直しました！ HTMLに合わせて 'scList' に変更！
+    const listContainer = document.getElementById('scList');
     const hitCountDisplay = document.getElementById('hitCount');
 
     const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
@@ -145,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderList() {
+        if (!listContainer) return;
         listContainer.innerHTML = '';
 
         const fTitle = document.getElementById('filterTitle') ? document.getElementById('filterTitle').value.trim().toLowerCase() : '';
@@ -153,12 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const fStatus = document.getElementById('filterStatusHidden').value;
         let hitCount = 0;
 
-        // ★ ここを直しました！変数名を possData と listContainer に修正！
         if (possData.length === 0) {
             listContainer.innerHTML = '<div class="empty-message-box">登録された所持シナリオはありません</div>';
-            hitCountDisplay.innerText = "0";
+            if (hitCountDisplay) hitCountDisplay.innerText = "0";
             return;
         }
+
+        let displayedCount = 0; // 実際に表示された件数をカウント
 
         possData.forEach((item) => {
             if (currentSystemFilter !== 'すべて' && item.system !== currentSystemFilter) return;
@@ -189,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             hitCount++;
+            displayedCount++;
 
             const div = document.createElement('div');
             div.className = 'list-item';
@@ -235,11 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
             listContainer.appendChild(div);
         });
 
-        hitCountDisplay.innerText = hitCount;
+        // 絞り込みの結果、1件も該当しなかった場合
+        if (possData.length > 0 && displayedCount === 0) {
+            listContainer.innerHTML = '<div class="empty-message-box">条件に一致するシナリオはありません</div>';
+        }
+
+        if (hitCountDisplay) hitCountDisplay.innerText = hitCount;
     }
 
     // ==========================================
-    // ★ 3. Firebaseへのデータ保存処理
+    // ★ Firebaseへのデータ保存処理
     // ==========================================
     document.getElementById('btnAddPoss').addEventListener('click', () => {
         if (!currentUser) return alert("ログインしてください");
@@ -286,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ★ カウンター増減処理（Firebaseの金庫を直接書き換える）
+    // ★ カウンター増減処理
     window.updateRunCount = (id, delta) => {
         const item = possData.find(d => d.id === id);
         if (item) {
