@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // ★ ログイン・ログアウトの処理 ＆ ツールロック機能
     // ==========================================
-    auth.onAuthStateChanged(async (user) => { // ★ ここを async に変更！
+    auth.onAuthStateChanged(async (user) => {
         if (user) {
             // ログイン成功時
             currentUser = user;
@@ -72,50 +72,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ★ 注文番号の認証ボタンを押したときの処理
+    // ★ 合言葉の認証ボタンを押したときの処理
     document.getElementById('btnVerifyOrder').addEventListener('click', async () => {
-        const orderNum = document.getElementById('orderNumberInput').value.trim();
-        if (!orderNum) return alert("注文番号を入力してください！");
+        const secretInput = document.getElementById('orderNumberInput').value.trim();
+        if (!secretInput) return alert("合言葉を入力してください！");
 
-        // 👑【管理者専用の合言葉】 ここに設定しました！
-        // 「admin2026」と入力すれば、他のチェックを全て無視して無条件で通します！
-        if (orderNum === "admin2026") {
-            await db.collection("users").doc(currentUser.uid).set({
-                hasValidOrder: true,
-                orderNumber: "admin-master"
-            }, { merge: true });
+        // ==========================================
+        // 👑【ここで合言葉を設定します！】
+        // ==========================================
+        const CORRECT_PASSWORD = "8tail8-app-secret"; // ←一般購入者に伝える「合言葉」
+        const ADMIN_PASSWORD = "admin2026";         // ←司令官だけが使う「マスターキー」
 
-            alert("👑 管理者権限でロックを解除しました！");
-            document.getElementById('passwordModal').style.display = 'none';
-            startMenuSync(); // メニューを表示！
-            return;
-        }
+        // 入力された文字が、合言葉かマスターキーのどちらかと一致したら合格！
+        if (secretInput === CORRECT_PASSWORD || secretInput === ADMIN_PASSWORD) {
+            try {
+                // 合格したら、自分のプロフィールに「認証済み」マークをつける
+                await db.collection("users").doc(currentUser.uid).set({
+                    hasValidOrder: true,
+                    orderNumber: "verified-by-password" // 重複チェックをしないので共通の文字列でOK
+                }, { merge: true });
 
-        // 一般ユーザーのBOOTH番号チェック処理
-        try {
-            // ① 「used_orders」という金庫に、この番号を自分のものとして登録しようとする
-            await db.collection("used_orders").doc(orderNum).set({
-                usedBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+                alert("認証に成功しました！ツールをご利用いただけます🎉");
+                document.getElementById('passwordModal').style.display = 'none';
+                startMenuSync(); // メニューを表示！
 
-            // ② 成功したら、自分のプロフィールに「認証済み」マークをつける
-            await db.collection("users").doc(currentUser.uid).set({
-                hasValidOrder: true,
-                orderNumber: orderNum
-            }, { merge: true });
-
-            alert("認証に成功しました！ツールをご利用いただけます🎉");
-            document.getElementById('passwordModal').style.display = 'none';
-            startMenuSync(); // メニューを表示！
-
-        } catch (error) {
-            // ③ エラーが出たら、誰かがもう使っているということ！
-            alert("❌ この注文番号はすでに他のユーザーによって使用されています。正しい番号を確認してください。");
-            console.error("認証エラー:", error);
+            } catch (error) {
+                alert("通信エラーが発生しました。");
+                console.error("認証エラー:", error);
+            }
+        } else {
+            // 合言葉が間違っていた場合は弾く！
+            alert("❌ 合言葉が間違っています。ダウンロードしたテキストファイル等を確認してください。");
         }
     });
-
 
     // ボタンを押した時のアクション
     authBtn.addEventListener('click', () => {
