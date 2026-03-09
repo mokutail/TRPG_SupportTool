@@ -38,6 +38,12 @@
             <button class="action-btn-mini" onclick="document.getElementById('importFile').click()">📤 復元</button>
             <input type="file" id="importFile" accept=".json,text/plain" style="display:none;">
         </div>
+
+        <label class="group-label" style="margin-top: 15px;">🔑 ライセンス</label>
+        <div class="settings-btns" style="flex-direction: column; gap: 10px; align-items: flex-start;">
+            <div id="licenseStatusDisplay" style="font-size: 12px; color: #666; background: #f0f0f0; padding: 8px 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-weight: bold;">現在の状態：確認中...</div>
+            <button class="action-btn-mini" style="width: 100%; margin: 0; background-color: #f57c00;" onclick="document.getElementById('passwordModal').style.display='flex'">合言葉を入力して切り替え</button>
+        </div>
     </div>
 </div>
 
@@ -67,10 +73,11 @@
         <h3 style="margin-top:0; color:#76ADAF; text-align:center; font-size:18px;">🔐 ツール有効化</h3>
         <p style="font-size:12px; color:#666; line-height:1.5; margin-bottom:15px;">
             管理者から伝えられている<b>「合言葉」</b>を入力してください。<br>
-            <span style="color:#d32f2f;">※合言葉は他の人への共有禁止</span>
+            <span style="color:#d32f2f;">※合言葉は他の人に共有禁止</span>
         </p>
         <input type="text" id="orderNumberInput" placeholder="合言葉を入力" style="width:100%; box-sizing:border-box; border:2px solid #eee; border-radius:10px; padding:12px; font-size:16px; font-weight:bold; text-align:center; outline:none; margin-bottom:15px;">
         <button id="btnVerifyOrder" style="width:100%; padding:15px; background:#76ADAF; border:none; border-radius:12px; font-weight:bold; color:#fff; font-size:15px; cursor:pointer;">認証する</button>
+        <button class="modal-btn-cancel" style="width:100%; margin-top:10px; border:none; background:none; color:#aaa; font-size:13px; cursor:pointer;" onclick="document.getElementById('passwordModal').style.display='none'">閉じる</button>
     </div>
 </div>
 
