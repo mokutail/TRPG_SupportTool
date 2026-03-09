@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             // ログイン成功時
             currentUser = user;
-            authBtn.innerText = "🚪 ログアウト";
+            authBtn.innerHTML = '<span class="btn-icon">🚪</span> ログアウト';
             authBtn.style.backgroundColor = "#ffebee";
             authBtn.style.color = "#c62828";
 
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // ログアウト時
             currentUser = null;
-            authBtn.innerText = "👤 ログイン";
+            authBtn.innerHTML = '<span class="btn-icon">👤</span> ログイン';
             authBtn.style.backgroundColor = "#e3f2fd";
             authBtn.style.color = "#0277bd";
 
@@ -408,3 +408,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
