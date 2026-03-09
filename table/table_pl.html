@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="table.css">
     <style>
-        /* ★ 追加：可愛いプルダウン（検索用）のスタイル */
+        /* ★ 可愛いプルダウン（検索用）のスタイル */
         .cute-select {
             width: 100%;
             padding: 12px 15px;
@@ -56,10 +56,10 @@
                 <select id="filterGender" class="cute-select" style="flex:1;">
                     <option value="すべて">性別: すべて</option>
                 </select>
-
                 <select id="filterStatus" class="cute-select" style="flex:1;">
                     <option value="すべて">状態: すべて</option>
-                    <option value="生還">生還</option> <option value="ロスト">ロスト</option>
+                    <option value="生還">生還</option>
+                    <option value="ロスト">ロスト</option>
                     <option value="継続不可">継続不可</option>
                 </select>
             </div>
@@ -137,12 +137,15 @@
                     <input type="text" id="histDate" placeholder="通過日" class="sc-band-input" style="flex:1;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
                 </div>
                 <div class="custom-select-wrapper" id="histStatusWrapper">
-                    <div class="select-display" id="histStatusDisplay">生還</div> <div class="select-options" id="histStatusOptions">
-                    <div class="option-item" data-value="生還">生還</div> <div class="option-item" data-value="ロスト">ロスト</div>
-                    <div class="option-item" data-value="継続不可">継続不可</div>
+                    <div class="select-display" id="histStatusDisplay">生還</div>
+                    <div class="select-options" id="histStatusOptions">
+                        <div class="option-item" data-value="生還">生還</div>
+                        <div class="option-item" data-value="ロスト">ロスト</div>
+                        <div class="option-item" data-value="継続不可">継続不可</div>
+                    </div>
                 </div>
-                </div>
-                <input type="hidden" id="histStatusHidden" value="生還"> </div>
+                <input type="hidden" id="histStatusHidden" value="生還">
+            </div>
         </div>
 
         <button class="action-btn" id="btnAddPc" style="width:100%; padding:15px; background:#76ADAF; color:#fff; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(118,173,175,0.3);">リストに追加</button>
@@ -162,15 +165,18 @@
         <input type="text" id="contDate" placeholder="通過日" class="sc-band-input" style="margin-bottom:10px;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
         <input type="text" id="contHO" placeholder="HO (任意)" class="sc-band-input" style="margin-bottom:10px;">
         <div class="custom-select-wrapper" id="contStatusWrapper" style="margin-bottom:20px;">
-            <div class="select-display" id="contStatusDisplay">生還</div> <div class="select-options" id="contStatusOptions">
-            <div class="option-item" data-value="生還">生還</div> <div class="option-item" data-value="ロスト">ロスト</div>
-            <div class="option-item" data-value="継続不可">継続不可</div>
+            <div class="select-display" id="contStatusDisplay">生還</div>
+            <div class="select-options" id="contStatusOptions">
+                <div class="option-item" data-value="生還">生還</div>
+                <div class="option-item" data-value="ロスト">ロスト</div>
+                <div class="option-item" data-value="継続不可">継続不可</div>
+            </div>
         </div>
+        <input type="hidden" id="contStatusHidden" value="生還">
+        <div class="modal-actions" style="display:flex; gap:10px;">
+            <button class="modal-btn-cancel" onclick="closeContinueModal()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#eee; color:#666; font-weight:bold; cursor:pointer;">キャンセル</button>
+            <button class="modal-btn-apply" onclick="saveContinueHistory()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#76ADAF; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
         </div>
-        <input type="hidden" id="contStatusHidden" value="生還"> <div class="modal-actions" style="display:flex; gap:10px;">
-        <button class="modal-btn-cancel" onclick="closeContinueModal()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#eee; color:#666; font-weight:bold; cursor:pointer;">キャンセル</button>
-        <button class="modal-btn-apply" onclick="saveContinueHistory()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#76ADAF; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
-    </div>
     </div>
 </div>
 
