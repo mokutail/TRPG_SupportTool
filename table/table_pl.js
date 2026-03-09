@@ -1,477 +1,182 @@
-// ==========================================
-// ★ Firebaseの初期設定
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
-  authDomain: "trpg-supporttool.firebaseapp.com",
-  projectId: "trpg-supporttool",
-  storageBucket: "trpg-supporttool.firebasestorage.app",
-  messagingSenderId: "163289928352",
-  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
-};
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentUser = null;
-let pcData = []; // Firebaseから取得したデータをここに入れます！
-
-let currentImageBase64 = null;
-let currentSystemFilter = "すべて";
-let targetPcIdForContinue = null;
-let editingPcId = null;
-let editingPcSystem = null;
-
-const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
-
-document.addEventListener('DOMContentLoaded', () => {
-    const pcListContainer = document.getElementById('pcListContainer');
-
-    // ==========================================
-    // ★ 2. ログインチェックとリアルタイム同期
-    // ==========================================
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUser = user;
-            startRealtimeSync();
-        } else {
-            alert("データの同期にはログインが必要です。トップページに戻ります。");
-            window.location.href = '../index.html';
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>探索者管理ツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="table.css">
+    <style>
+        /* ★ 追加：可愛いプルダウン（検索用）のスタイル */
+        .cute-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            background-color: #fff;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2376ADAF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 15px top 50%;
+            background-size: 12px auto;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            outline: none;
         }
-    });
-
-    function startRealtimeSync() {
-        // "characters" という名前の引き出しを監視する
-        db.collection("users").doc(currentUser.uid).collection("characters")
-          .orderBy("createdAt", "desc") // 新しく作られた順に並べる
-          .onSnapshot((snapshot) => {
-              pcData = [];
-              snapshot.forEach((doc) => {
-                  pcData.push({ id: doc.id, ...doc.data() });
-              });
-              renderPcList(); // データが変わるたびに自動でリストを再描画！
-          });
-    }
-
-    // --- 🎨 画像アップロード ---
-    document.getElementById('imageUploadWrapper').addEventListener('click', () => { document.getElementById('pcImage').click(); });
-    document.getElementById('pcImage').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const size = 200; canvas.width = size; canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
-                if (img.width > img.height) { sWidth = img.height; sx = (img.width - img.height) / 2; }
-                else { sHeight = img.width; sy = (img.height - img.width) / 2; }
-                ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, size, size);
-                currentImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                document.getElementById('imagePreview').style.backgroundImage = `url(${currentImageBase64})`;
-                document.getElementById('imagePreviewText').style.display = 'none';
-                document.getElementById('btnClearImage').style.display = 'block';
-            }
-            img.src = event.target.result;
+        .cute-select:focus {
+            border-color: #76ADAF;
+            box-shadow: 0 0 0 3px rgba(118, 173, 175, 0.2);
         }
-        reader.readAsDataURL(file);
-    });
-    document.getElementById('btnClearImage').addEventListener('click', (e) => {
-        e.stopPropagation(); currentImageBase64 = null;
-        document.getElementById('imagePreview').style.backgroundImage = 'none';
-        document.getElementById('imagePreviewText').style.display = 'flex';
-        document.getElementById('pcImage').value = '';
-        document.getElementById('btnClearImage').style.display = 'none';
-    });
+    </style>
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">🎲 探索者(PC)管理</span>
+    <button class="back-btn" onclick="location.href='../index.html'">🏠 戻る</button>
+</h2>
 
-    // --- 固定のプルダウン（履歴ステータス用） ---
-    function setupFixedSelect(displayId, optionsId, hiddenId) {
-        const display = document.getElementById(displayId);
-        const options = document.getElementById(optionsId);
-        const hidden = document.getElementById(hiddenId);
-        display.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.select-options').forEach(opt => { if(opt !== options) opt.classList.remove('active'); });
-            options.classList.toggle('active');
-        });
-        options.querySelectorAll('.option-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const val = item.getAttribute('data-value');
-                if(val) { display.innerText = val; hidden.value = val; }
-                options.classList.remove('active');
-            });
-        });
-    }
-    setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
-    setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
+<div id="table-view" class="view">
+    <div class="system-tabs" id="systemTabs"></div>
 
-    // --- ★ 自由に追加＆削除できるカスタムプルダウン（これは端末ごとの保存でOK） ---
-    function updateFilterGenderOptions(list) {
-        const filter = document.getElementById('filterGender');
-        if (!filter) return;
-        const currentVal = filter.value;
-        filter.innerHTML = '<option value="すべて">すべて</option>';
-        list.forEach(g => {
-            const opt = document.createElement('option'); opt.value = g; opt.innerText = g;
-            filter.appendChild(opt);
-        });
-        filter.value = currentVal;
-    }
+    <div class="input-group">
+        <div class="filter-toggle-btn" id="filterToggleBtn">
+            🔍 探索者を検索・絞り込み <span class="arrow">▼</span>
+        </div>
+        <div class="filter-box" id="filterBox">
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input type="text" id="filterName" placeholder="PC名で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterScenario" placeholder="シナリオ名で検索" class="sc-band-input" style="flex:1;">
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <select id="filterGender" class="cute-select" style="flex:1;">
+                    <option value="すべて">性別: すべて</option>
+                </select>
 
-    function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText) {
-        let currentList = JSON.parse(localStorage.getItem(storageKey)) || defaultList;
-        const display = document.getElementById(displayId);
-        const hidden = document.getElementById(hiddenId);
-        const options = document.getElementById(optionsId);
+                <select id="filterStatus" class="cute-select" style="flex:1;">
+                    <option value="すべて">状態: すべて</option>
+                    <option value="生還">生還</option> <option value="ロスト">ロスト</option>
+                    <option value="継続不可">継続不可</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
+            </div>
+            <button id="btnResetFilter" style="width:100%; padding:12px; border-radius:12px; border:2px solid #eee; background:#fff; font-weight:bold; color:#76ADAF; cursor:pointer;">🔄 絞り込みをリセット</button>
+            <div class="hit-count-display" style="text-align:right; font-size:12px; color:#888; margin-top:10px;">該当件数: <strong id="pcHitCount" style="color:#76ADAF; font-size:16px;">0</strong> 件</div>
+        </div>
+    </div>
 
-        display.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.select-options').forEach(opt => { if(opt !== options) opt.classList.remove('active'); });
-            options.classList.toggle('active');
-        });
+    <div class="input-group">
+        <label class="group-label" id="formTitleLabel">👤 新規探索者の登録</label>
 
-        function renderOptions() {
-            options.innerHTML = '';
-            currentList.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'option-item';
-                div.setAttribute('data-value', item);
-                div.innerText = item;
-                let isLongPress = false;
-
-                div.addEventListener('click', (e) => {
-                    if (isLongPress) { isLongPress = false; return; }
-                    display.innerText = item;
-                    hidden.value = item;
-                    options.classList.remove('active');
-                });
-
-                if (!defaultList.includes(item)) {
-                    let timer;
-                    const startPress = () => {
-                        isLongPress = false;
-                        timer = setTimeout(() => {
-                            isLongPress = true;
-                            if (confirm(`追加した${placeholderText}「${item}」を削除しますか？`)) {
-                                currentList = currentList.filter(v => v !== item);
-                                localStorage.setItem(storageKey, JSON.stringify(currentList));
-                                if (hidden.value === item) { display.innerText = placeholderText; hidden.value = ""; }
-                                renderOptions();
-                                if (storageKey === 'trpg_custom_genders') updateFilterGenderOptions(currentList);
-                            }
-                        }, 800);
-                    };
-                    const cancelPress = () => clearTimeout(timer);
-                    div.addEventListener('touchstart', startPress, {passive: true});
-                    div.addEventListener('touchend', cancelPress);
-                    div.addEventListener('mousedown', startPress);
-                    div.addEventListener('mouseup', cancelPress);
-                }
-                options.appendChild(div);
-            });
-
-            const addDiv = document.createElement('div');
-            addDiv.className = 'option-item';
-            addDiv.style.color = '#76ADAF';
-            addDiv.innerText = `➕ ${placeholderText}を追加`;
-            addDiv.addEventListener('click', () => {
-                const newVal = prompt(`${placeholderText}を入力してください`);
-                if (newVal && newVal.trim() !== '') {
-                    const val = newVal.trim();
-                    if (!currentList.includes(val)) {
-                        currentList.push(val);
-                        localStorage.setItem(storageKey, JSON.stringify(currentList));
-                        renderOptions();
-                        if (storageKey === 'trpg_custom_genders') updateFilterGenderOptions(currentList);
-                    }
-                    display.innerText = val;
-                    hidden.value = val;
-                }
-                options.classList.remove('active');
-            });
-            options.appendChild(addDiv);
-        }
-
-        renderOptions();
-        if (storageKey === 'trpg_custom_genders') updateFilterGenderOptions(currentList);
-
-        return {
-            reset: () => { display.innerText = placeholderText; hidden.value = ""; },
-            setValue: (val) => {
-                if (val) {
-                    if (!currentList.includes(val)) {
-                        currentList.push(val);
-                        localStorage.setItem(storageKey, JSON.stringify(currentList));
-                        renderOptions();
-                        if (storageKey === 'trpg_custom_genders') updateFilterGenderOptions(currentList);
-                    }
-                    display.innerText = val;
-                    hidden.value = val;
-                } else {
-                    display.innerText = placeholderText;
-                    hidden.value = "";
-                }
-            }
-        };
-    }
-
-    const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別');
-    const selectAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'pcAgeDisplay', 'pcAgeHidden', 'pcAgeOptions', '年齢');
-    const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
-    const selectJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'pcJobDisplay', 'pcJobHidden', 'pcJobOptions', '職業');
-
-    window.addEventListener('click', () => {
-        document.querySelectorAll('.select-options').forEach(opt => opt.classList.remove('active'));
-    });
-
-    // --- UI制御・リスト描画など ---
-    function updateFormTitle() {
-        const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
-        document.getElementById('formTitleLabel').innerHTML = `👤 新規探索者の登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
-    }
-
-    function renderSystemTabs() {
-        const container = document.getElementById('systemTabs');
-        container.innerHTML = `<button class="sys-tab-btn active" data-sys="すべて">すべて</button>`;
-        systems.forEach(sys => {
-            container.innerHTML += `<button class="sys-tab-btn" data-sys="${sys}">${sys}</button>`;
-        });
-        container.querySelectorAll('.sys-tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                container.querySelectorAll('.sys-tab-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentSystemFilter = e.target.getAttribute('data-sys');
-                updateFormTitle();
-                renderPcList();
-            });
-        });
-        updateFormTitle();
-    }
-
-    document.getElementById('filterToggleBtn').addEventListener('click', function() {
-        const box = document.getElementById('filterBox');
-        if (box.style.display === 'none' || box.style.display === '') {
-            box.style.display = 'block'; this.classList.add('open');
-        } else {
-            box.style.display = 'none'; this.classList.remove('open');
-        }
-    });
-
-    ['filterGender', 'filterTags', 'filterScenario', 'filterName', 'filterStatus', 'filterHO'].forEach(id => {
-        document.getElementById(id).addEventListener('input', renderPcList);
-        document.getElementById(id).addEventListener('change', renderPcList);
-    });
-
-    document.getElementById('btnResetFilter').addEventListener('click', () => {
-        document.getElementById('filterName').value = '';
-        document.getElementById('filterScenario').value = '';
-        document.getElementById('filterGender').value = 'すべて';
-        document.getElementById('filterStatus').value = 'すべて';
-        document.getElementById('filterHO').value = '';
-        document.getElementById('filterTags').value = '';
-        renderPcList();
-    });
-
-    function renderPcList() {
-        pcListContainer.innerHTML = '';
-        const fGender = document.getElementById('filterGender').value;
-        const fStatus = document.getElementById('filterStatus').value;
-        const fTags = document.getElementById('filterTags').value.trim().toLowerCase();
-        const fScenario = document.getElementById('filterScenario').value.trim().toLowerCase();
-        const fName = document.getElementById('filterName').value.trim().toLowerCase();
-        const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
-        let hitCount = 0;
-
-        // ★ ここが共通の可愛いデザインに書き換えた部分です！
-        if (pcData.length === 0) {
-            pcListContainer.innerHTML = '<div class="empty-message-box">登録された探索者はいません</div>';
-            document.getElementById('pcHitCount').innerText = "0"; return;
-        }
-
-        pcData.forEach((pc) => {
-            if (currentSystemFilter !== "すべて" && pc.system !== currentSystemFilter) return;
-            if (fGender !== 'すべて' && pc.gender !== fGender) return;
-            if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
-            if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
-
-            const latestHistory = (pc.history && pc.history.length > 0) ? pc.history[0] : { scenario: '履歴なし', status: '不明', ho: '' };
-
-            if (fStatus !== 'すべて' && latestHistory.status !== fStatus) return;
-            if (fHO !== '' && (!latestHistory.ho || !latestHistory.ho.toLowerCase().includes(fHO))) return;
-
-            if (fScenario !== '') {
-                if(!pc.history) return;
-                const matchScen = pc.history.some(h => h.scenario.toLowerCase().includes(fScenario));
-                if (!matchScen) return;
-            }
-
-            hitCount++;
-            const statusClass = latestHistory.status === '生還' ? 'alive' : (latestHistory.status === 'ロスト' ? 'lost' : 'other');
-            const item = document.createElement('div');
-            item.className = 'list-item';
-            let tagsHtml = '';
-            if (pc.tags) {
-                tagsHtml = `<div style="margin-bottom:8px;">` + pc.tags.split(',').map(t => `<span class="tag-pill">${t.trim()}</span>`).join(' ') + `</div>`;
-            }
-            const imgStyle = pc.image ? `background-image: url(${pc.image});` : `display:flex; justify-content:center; align-items:center; color:#aaa; font-size:30px;`;
-
-            item.innerHTML = `
-                <div class="item-actions-corner">
-                    <button class="corner-btn detail" onclick="openDetail('${pc.id}')">詳細</button>
-                    <button class="corner-btn continue" onclick="openContinueModal('${pc.id}')">継続</button>
-                    <button class="corner-btn delete" onclick="deletePc('${pc.id}')">削除</button>
+        <div style="display: grid; grid-template-columns: 90px 1fr; gap: 15px; margin-bottom: 12px;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+                <div class="image-upload-wrapper" id="imageUploadWrapper">
+                    <div id="imagePreview" class="image-preview"><span id="imagePreviewText">顔写真<br>(タップ)</span></div>
+                    <input type="file" id="pcImage" accept="image/*" style="display:none;">
                 </div>
-                <div class="pl-list-layout">
-                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; gap:6px; width:80px;">
-                        <div class="pl-list-image" style="${imgStyle}">${pc.image ? '' : '👤'}</div>
-                        <span class="status-badge ${statusClass}" style="margin:0;">${latestHistory.status}</span>
-                        <span style="font-size:10px; color:#999; font-weight:bold; text-align:center;">${pc.system}</span>
-                    </div>
-                    <div class="pl-list-content">
-                        <div class="item-header">
-                            <div class="item-title">${pc.name}</div>
-                            <div class="item-subtitle">最新: ${latestHistory.scenario}</div>
-                        </div>
-                        ${tagsHtml}
-                        <div class="item-details">通過数: ${pc.history ? pc.history.length : 0} シナリオ</div>
+                <button type="button" class="clear-img-btn" id="btnClearImage" style="display:none;">クリア</button>
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:center;">
+                <input type="text" id="pcName" placeholder="*PC名 (探索者名)*" class="sc-band-input" style="height: 90px; font-size: 18px;">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="custom-select-wrapper" id="pcGenderWrapper">
+                <div class="select-display" id="pcGenderDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">性別</div>
+                <div class="select-options" id="pcGenderOptions"></div>
+            </div>
+            <input type="hidden" id="pcGenderHidden" value="">
+
+            <div class="custom-select-wrapper" id="pcAgeWrapper">
+                <div class="select-display" id="pcAgeDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">年齢</div>
+                <div class="select-options" id="pcAgeOptions"></div>
+            </div>
+            <input type="hidden" id="pcAgeHidden" value="">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="custom-select-wrapper" id="pcRaceWrapper">
+                <div class="select-display" id="pcRaceDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">種族</div>
+                <div class="select-options" id="pcRaceOptions"></div>
+            </div>
+            <input type="hidden" id="pcRaceHidden" value="">
+
+            <div class="custom-select-wrapper" id="pcJobWrapper">
+                <div class="select-display" id="pcJobDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">職業</div>
+                <div class="select-options" id="pcJobOptions"></div>
+            </div>
+            <input type="hidden" id="pcJobHidden" value="">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="text" id="pcTags" placeholder="タグ" class="sc-band-input" style="padding: 12px 16px;">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <input type="url" id="pcUrl" placeholder="いあきゃら等のURL" class="sc-band-input">
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <textarea id="pcIachara" placeholder="▼ いあきゃらのコマ出力(JSON)やチャパレをコピペする" class="sc-band-input" style="height: 60px; resize: none; font-size: 12px;"></textarea>
+        </div>
+
+        <div id="initialHistorySection">
+            <label style="font-size:12px; color:#888; font-weight:bold; margin-bottom:6px; display:block;">▼ 初回通過シナリオ</label>
+            <div style="background:#f8f9fa; padding:15px; border-radius:12px; border:1px solid #eee; margin-bottom:20px;">
+                <input type="text" id="histScenario" placeholder="シナリオ名" class="sc-band-input" style="margin-bottom:10px;">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="histHO" placeholder="HO (任意)" class="sc-band-input" style="flex:1;">
+                    <input type="text" id="histDate" placeholder="通過日" class="sc-band-input" style="flex:1;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
+                </div>
+                <div class="custom-select-wrapper" id="histStatusWrapper">
+                    <div class="select-display" id="histStatusDisplay">生還</div> <div class="select-options" id="histStatusOptions">
+                        <div class="option-item" data-value="生還">生還</div> <div class="option-item" data-value="ロスト">ロスト</div>
+                        <div class="option-item" data-value="継続不可">継続不可</div>
                     </div>
                 </div>
-            `;
-            pcListContainer.appendChild(item);
-        });
+                <input type="hidden" id="histStatusHidden" value="生還"> </div>
+        </div>
 
-        document.getElementById('pcHitCount').innerText = hitCount;
-    }
+        <button class="action-btn" id="btnAddPc" style="width:100%; padding:15px; background:#76ADAF; color:#fff; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(118,173,175,0.3);">リストに追加</button>
+    </div>
 
-    // ==========================================
-    // ★ 3. Firebaseへのデータ保存・更新処理
-    // ==========================================
+    <div class="input-group">
+        <label class="group-label">📊 探索者リスト</label>
+        <div id="pcListContainer"></div>
+    </div>
+</div>
 
-    // --- 新規登録（Firebaseに保存） ---
-    document.getElementById('btnAddPc').addEventListener('click', () => {
-        if (!currentUser) return alert("ログインしてください");
+<div id="continueModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:2000;">
+    <div class="modal-content" style="background:#fff; width:90%; max-width:350px; padding:25px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0; color:#333; font-size:16px;">🚀 継続シナリオの追加</h3>
+        <p id="continuePcName" style="font-size:14px; color:#76ADAF; font-weight:bold; margin-bottom:15px; text-align:center;"></p>
+        <input type="text" id="contScenario" placeholder="シナリオ名" class="sc-band-input" style="margin-bottom:10px;">
+        <input type="text" id="contDate" placeholder="通過日" class="sc-band-input" style="margin-bottom:10px;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
+        <input type="text" id="contHO" placeholder="HO (任意)" class="sc-band-input" style="margin-bottom:10px;">
+        <div class="custom-select-wrapper" id="contStatusWrapper" style="margin-bottom:20px;">
+            <div class="select-display" id="contStatusDisplay">生還</div> <div class="select-options" id="contStatusOptions">
+                <div class="option-item" data-value="生還">生還</div> <div class="option-item" data-value="ロスト">ロスト</div>
+                <div class="option-item" data-value="継続不可">継続不可</div>
+            </div>
+        </div>
+        <input type="hidden" id="contStatusHidden" value="生還"> <div class="modal-actions" style="display:flex; gap:10px;">
+            <button class="modal-btn-cancel" onclick="closeContinueModal()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#eee; color:#666; font-weight:bold; cursor:pointer;">キャンセル</button>
+            <button class="modal-btn-apply" onclick="saveContinueHistory()" style="flex:1; padding:12px; border-radius:10px; border:none; background:#76ADAF; color:#fff; font-weight:bold; cursor:pointer;">追加する</button>
+        </div>
+    </div>
+</div>
 
-        const name = document.getElementById('pcName').value.trim();
-        const gender = document.getElementById('pcGenderHidden').value;
-        const age = document.getElementById('pcAgeHidden').value;
-        const race = document.getElementById('pcRaceHidden').value;
-        const job = document.getElementById('pcJobHidden').value;
-        const tags = document.getElementById('pcTags').value.trim();
-        const url = document.getElementById('pcUrl').value.trim();
-        const iacharaText = document.getElementById('pcIachara').value.trim();
-
-        if (!name) { alert('PC名は必須です'); return; }
-
-        let parsedStats = [];
-        let parsedSkills = '';
-        if (iacharaText) {
-            try {
-                const dataObj = JSON.parse(iacharaText);
-                if (dataObj.data) {
-                    if (dataObj.data.status) dataObj.data.status.forEach(s => parsedStats.push({ label: s.label, value: s.value }));
-                    if (dataObj.data.params) dataObj.data.params.forEach(p => parsedStats.push({ label: p.label, value: p.value }));
-                    if (dataObj.data.commands) parsedSkills = dataObj.data.commands;
-                }
-            } catch(e) { parsedSkills = iacharaText; }
-        }
-
-        const system = currentSystemFilter === "すべて" ? "CoC 6th" : currentSystemFilter;
-        const hScen = document.getElementById('histScenario').value.trim();
-        const hHO = document.getElementById('histHO').value.trim();
-        const hDate = document.getElementById('histDate').value;
-        const hStatus = document.getElementById('histStatusHidden').value;
-
-        if (!hScen) { alert('初回シナリオ名は必須です'); return; }
-
-        const now = Date.now();
-        const newPc = {
-            system, name, gender, age, race, job, tags, url, image: currentImageBase64,
-            stats: parsedStats, skills: parsedSkills,
-            history: [{ scenario: hScen, ho: hHO, date: hDate, status: hStatus }],
-            createdAt: now,
-            updatedAt: now
-        };
-
-        // Firebaseの金庫に追加！
-        db.collection("users").doc(currentUser.uid).collection("characters").add(newPc).then(() => {
-            // フォームのリセット
-            document.getElementById('pcName').value = '';
-            document.getElementById('pcTags').value = '';
-            document.getElementById('pcUrl').value = '';
-            document.getElementById('pcIachara').value = '';
-            document.getElementById('histScenario').value = '';
-            document.getElementById('histHO').value = '';
-            const histDate = document.getElementById('histDate');
-            histDate.value = ''; histDate.type = 'text';
-
-            selectGender.reset(); selectAge.reset(); selectRace.reset(); selectJob.reset();
-            document.getElementById('btnClearImage').click();
-        });
-    });
-
-    // --- 継続シナリオの追加（Firebaseのデータを更新） ---
-    window.openContinueModal = (id) => {
-        targetPcIdForContinue = id;
-        const pc = pcData.find(p => p.id === id);
-        if(!pc) return;
-        document.getElementById('continuePcName').innerText = `${pc.name} (${pc.system})`;
-        document.getElementById('contScenario').value = '';
-        const contDate = document.getElementById('contDate');
-        contDate.value = ''; contDate.type = 'text';
-        document.getElementById('contHO').value = '';
-        document.getElementById('contStatusHidden').value = '生還';
-        document.getElementById('contStatusDisplay').innerText = '生還';
-        document.getElementById('continueModal').style.display = 'flex';
-    };
-
-    window.closeContinueModal = () => {
-        document.getElementById('continueModal').style.display = 'none';
-        targetPcIdForContinue = null;
-    };
-
-    window.saveContinueHistory = () => {
-        if(!targetPcIdForContinue) return;
-        const pc = pcData.find(p => p.id === targetPcIdForContinue);
-        if(!pc) return;
-
-        const scenario = document.getElementById('contScenario').value.trim();
-        if(!scenario) { alert('シナリオ名は必須です'); return; }
-
-        const newHist = {
-            scenario: scenario,
-            date: document.getElementById('contDate').value,
-            ho: document.getElementById('contHO').value.trim(),
-            status: document.getElementById('contStatusHidden').value
-        };
-
-        // 現在の履歴の一番上（先頭）に新しい履歴を追加
-        const updatedHistory = [newHist, ...(pc.history || [])];
-
-        // Firebaseの金庫を上書き更新！
-        db.collection("users").doc(currentUser.uid).collection("characters").doc(targetPcIdForContinue)
-          .set({ history: updatedHistory, updatedAt: Date.now() }, { merge: true })
-          .then(() => {
-              closeContinueModal();
-          });
-    };
-
-    // --- 削除処理（Firebaseから削除） ---
-    window.deletePc = (id) => {
-        if (confirm('この探索者のデータを完全に削除しますか？')) {
-            db.collection("users").doc(currentUser.uid).collection("characters").doc(id).delete();
-        }
-    };
-
-    // 詳細画面・編集画面への遷移（これだけは今まで通りlocalStorageでIDを渡します）
-    window.openDetail = (id) => {
-        localStorage.setItem('trpg_current_pc_id', id);
-        window.location.href = './detail.html'; // ※ファイル名は適宜合わせてください
-    };
-
-    renderSystemTabs();
-});
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="table_pl.js"></script>
+</body>
+</html>
