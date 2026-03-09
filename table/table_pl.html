@@ -7,13 +7,14 @@
     <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="table.css">
     <style>
-        /* ★ 可愛いプルダウン（検索用）のスタイル */
+        /* ★ 修正：入力欄(.sc-band-input)と高さ・デザインを完全に統一した可愛いプルダウン */
         .cute-select {
             width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
+            box-sizing: border-box;
+            padding: 14px 16px; /* 高さのズレを解消！ */
+            border: 2px solid #eee; /* ボーダーの太さと色を統一 */
             border-radius: 12px;
-            font-size: 14px;
+            font-size: 15px; /* フォントサイズを統一 */
             font-weight: bold;
             color: #555;
             background-color: #fff;
@@ -21,16 +22,16 @@
             -webkit-appearance: none;
             background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2376ADAF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
             background-repeat: no-repeat;
-            background-position: right 15px top 50%;
+            background-position: right 16px top 50%;
             background-size: 12px auto;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: all 0.2s;
             outline: none;
+            font-family: inherit; /* フォントを統一 */
         }
         .cute-select:focus {
             border-color: #76ADAF;
-            box-shadow: 0 0 0 3px rgba(118, 173, 175, 0.2);
+            background-color: #f0f7f7; /* タップした時の色も統一 */
         }
     </style>
 </head>
@@ -56,6 +57,7 @@
                 <select id="filterGender" class="cute-select" style="flex:1;">
                     <option value="すべて">性別: すべて</option>
                 </select>
+
                 <select id="filterStatus" class="cute-select" style="flex:1;">
                     <option value="すべて">状態: すべて</option>
                     <option value="生還">生還</option>
