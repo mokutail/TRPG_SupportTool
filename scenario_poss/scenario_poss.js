@@ -17,7 +17,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
-let possData = []; // localStorageの代わりに空の配列を用意
+let possData = []; // Firebaseから取得したデータをここに入れます
 let editingId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // UI制御のコード（既存のまま）
+    // UI制御のコード
     // ==========================================
     const listContainer = document.getElementById('possListContainer');
     const hitCountDisplay = document.getElementById('hitCount');
@@ -153,10 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const fStatus = document.getElementById('filterStatusHidden').value;
         let hitCount = 0;
 
-        if (scenarios.length === 0) {
-                    scList.innerHTML = '<div class="empty-message-box">登録された行きたいシナリオはありません</div>';
-                    hitCountDisplay.innerText = "0";
-                    return;
+        // ★ ここを直しました！変数名を possData と listContainer に修正！
+        if (possData.length === 0) {
+            listContainer.innerHTML = '<div class="empty-message-box">登録された所持シナリオはありません</div>';
+            hitCountDisplay.innerText = "0";
+            return;
         }
 
         possData.forEach((item) => {
