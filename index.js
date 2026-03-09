@@ -15,16 +15,18 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ログイン状態を管理する変数
 let currentUser = null;
+let currentLicense = "none"; // ユーザーの権限（admin, pro, trial）
+let hasDLC = false;          // ★ DLCを持っているかどうかのフラグ
 
 document.addEventListener('DOMContentLoaded', () => {
     const authBtn = document.getElementById('authBtn');
     const userInfoArea = document.getElementById('userInfoArea');
     const userNameDisplay = document.getElementById('userNameDisplay');
+    const licenseDisplay = document.getElementById('licenseStatusDisplay');
 
     // ==========================================
-    // ★ ログイン・ログアウトの処理 ＆ ツールロック機能
+    // ★ ログイン・ログアウト ＆ ライセンス・DLC判定
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
         if (user) {
@@ -32,103 +34,151 @@ document.addEventListener('DOMContentLoaded', () => {
             authBtn.innerHTML = '<span class="btn-icon">🚪</span> ログアウト';
             authBtn.style.backgroundColor = "#ffebee";
             authBtn.style.color = "#c62828";
-
             userInfoArea.style.display = "block";
             userNameDisplay.innerText = user.displayName || "名無し";
 
-            // ★ 究極の鉄壁ロック機能：この人が「認証済み」か、そして「パスワードはまだ金庫にあるか」を聞きに行く！
             try {
                 const userDoc = await db.collection("users").doc(currentUser.uid).get();
+                const userData = userDoc.exists ? userDoc.data() : {};
 
-                if (userDoc.exists && userDoc.data().hasValidOrder === true) {
+                // ★ 追加：DLC（追加コンテンツ）を持っているかチェック！
+                const dlcSnapshot = await db.collection("users").doc(currentUser.uid).collection("dlc").get();
+                hasDLC = !dlcSnapshot.empty; // 1つでもDLC履歴があれば true になる
 
-                    // 使った合言葉がまだ有効か（Firebaseの金庫にあるか）をチェック！
-                    const usedPass = userDoc.data().usedPassword;
-                    const passDoc = await db.collection("valid_passwords").doc(usedPass).get();
+                if (userData.hasValidOrder === true) {
+                    const usedPass = userData.usedPassword || "";
+                    const verifiedAt = userData.verifiedAt ? userData.verifiedAt.toDate() : null;
 
-                    if (passDoc.exists) {
-                        // まだ合言葉が金庫にあった！通す！
+                    // 👑 1. 管理者 (admin2003) の判定：すべてのツールが使える！
+                    if (usedPass === "admin2003" || usedPass.includes("admin")) {
+                        currentLicense = "admin";
+                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：管理者 (全機能解放)";
                         document.getElementById('passwordModal').style.display = 'none';
                         startMenuSync();
-                    } else {
-                        // ★司令官が合言葉を削除していた！権限を剥奪する！★
-                        await db.collection("users").doc(currentUser.uid).set({
-                            hasValidOrder: false,
-                            usedPassword: null
-                        }, { merge: true });
+                        return;
+                    }
 
-                        alert("❌ 有効期限が切れたか、管理者の権限によりアクセスが取り消されました。");
-                        document.getElementById('home-view').innerHTML = '';
-                        document.getElementById('passwordModal').style.display = 'flex';
+                    // 💎 2. プロ版 (買い切り) の判定：無期限だがDLCがないと一部隠れる
+                    if (usedPass.includes("pro")) {
+                        currentLicense = "pro";
+                        if(licenseDisplay) licenseDisplay.innerText = hasDLC ? "現在の状態：プロ版 (DLC解放済み)" : "現在の状態：プロ版 (通常)";
+                        document.getElementById('passwordModal').style.display = 'none';
+                        startMenuSync();
+                        return;
+                    }
+
+                    // ⏳ 3. お試し版 (30日) の判定：期限付き＆DLCがないと一部隠れる
+                    const now = new Date();
+                    const limitTime = 30 * 24 * 60 * 60 * 1000; // 30日間
+                    if (verifiedAt && (now - verifiedAt < limitTime)) {
+                        const remainingDays = Math.ceil((limitTime - (now - verifiedAt)) / (24 * 60 * 60 * 1000));
+                        currentLicense = "trial";
+                        if(licenseDisplay) licenseDisplay.innerText = hasDLC ? `現在の状態：お試し版＋DLC (残り ${remainingDays} 日)` : `現在の状態：お試し版 (残り ${remainingDays} 日)`;
+
+                        // 合言葉自体が消されていないか最終確認
+                        const passDoc = await db.collection("valid_passwords").doc(usedPass).get();
+                        if (passDoc.exists) {
+                            document.getElementById('passwordModal').style.display = 'none';
+                            startMenuSync();
+                        } else {
+                            alert("❌ この合言葉は無効化されました。");
+                            lockApp();
+                        }
+                    } else {
+                        // 期限切れ！
+                        alert("⌛ お試し期間(30日)が終了しました。引き続き利用するにはプロ版の合言葉を入力してください。");
+                        lockApp();
                     }
                 } else {
-                    // 【初めての人・権限がない人】メニューを強制的に消して、パスワード画面を出す！
-                    document.getElementById('home-view').innerHTML = '';
-                    document.getElementById('passwordModal').style.display = 'flex';
+                    lockApp(); // 未認証
                 }
             } catch (error) {
-                console.error("ユーザーデータの確認に失敗しました:", error);
+                console.error("データ確認エラー:", error);
+                lockApp();
             }
-
         } else {
             // ログアウト時
             currentUser = null;
+            currentLicense = "none";
+            hasDLC = false;
             authBtn.innerHTML = '<span class="btn-icon">👤</span> ログイン';
             authBtn.style.backgroundColor = "#e3f2fd";
             authBtn.style.color = "#0277bd";
-
             userInfoArea.style.display = "none";
-            document.getElementById('passwordModal').style.display = 'none'; // ログアウト中は隠す
-
-            // ログアウト中はローカルのデータで表示する
+            document.getElementById('passwordModal').style.display = 'none';
             renderMenu();
         }
     });
 
-    // ★ 合言葉の認証ボタンを押したときの処理（パスワードの文字をJSから完全排除！）
+    function lockApp() {
+        currentLicense = "none";
+        hasDLC = false;
+        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：未認証 (ロック中)";
+        document.getElementById('home-view').innerHTML = '';
+        document.getElementById('passwordModal').style.display = 'flex';
+    }
+
+    // ==========================================
+    // ★ 合言葉の認証ボタンを押したときの処理
+    // ==========================================
     document.getElementById('btnVerifyOrder').addEventListener('click', async () => {
         const secretInput = document.getElementById('orderNumberInput').value.trim();
         if (!secretInput) return alert("合言葉を入力してください！");
 
         try {
-            // 入力された文字の書類が、Firebaseの金庫にあるか確認するだけ！
             const passDoc = await db.collection("valid_passwords").doc(secretInput).get();
 
             if (passDoc.exists) {
-                // 合格！自分のプロフィールに「認証済み」マークと「使った合言葉」をメモする
-                await db.collection("users").doc(currentUser.uid).set({
-                    hasValidOrder: true,
-                    usedPassword: secretInput
-                }, { merge: true });
+                const userRef = db.collection("users").doc(currentUser.uid);
+                const userDoc = await userRef.get();
+                // 既に何かのベースライセンスを持っているか確認
+                const currentUsedPass = userDoc.exists ? userDoc.data().usedPassword : null;
 
-                alert("認証に成功しました！ツールをご利用いただけます🎉");
+                // 🎁 DLC解放用の合言葉だった場合
+                if (secretInput.includes("dlc")) {
+                    // DLCの金庫に記録する
+                    await userRef.collection("dlc").doc(secretInput).set({
+                        activatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // ※もし「お試し版」すら入れていない真っ新な状態でDLCコードを入れた場合、それをベースにも設定してあげる
+                    if (!currentUsedPass) {
+                        await userRef.set({
+                            hasValidOrder: true,
+                            usedPassword: secretInput,
+                            verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                    }
+                    alert("🎁 追加コンテンツ(DLC)を解放しました！\n（ロックされていた機能が使えるようになります）");
+                }
+                // 💎 通常のライセンス（お試し・Pro・Admin）
+                else {
+                    await userRef.set({
+                        hasValidOrder: true,
+                        usedPassword: secretInput,
+                        verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    alert("認証に成功しました！🎉");
+                }
+
                 document.getElementById('passwordModal').style.display = 'none';
-                startMenuSync(); // メニューを表示！
+                location.reload(); // メニュー表示を切り替えるため画面を再読み込み
 
             } else {
-                // 書類がなかった場合！
-                alert("❌ 合言葉が間違っています。ダウンロードしたテキストファイル等を確認してください。");
+                alert("❌ 合言葉が間違っています。管理者に確認してください。");
             }
-
         } catch (error) {
             alert("通信エラーが発生しました。");
             console.error("認証エラー:", error);
         }
     });
 
-
-    // ボタンを押した時のアクション
     authBtn.addEventListener('click', () => {
         if (currentUser) {
-            if (confirm("ログアウトしますか？")) {
-                auth.signOut();
-            }
+            if (confirm("ログアウトしますか？")) auth.signOut();
         } else {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch((error) => {
-                console.error("ログインエラー:", error);
-                alert("ログインに失敗しました。");
-            });
+            auth.signInWithPopup(provider).catch(err => alert("ログインに失敗しました。"));
         }
     });
 
@@ -166,11 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         currentMenu.forEach(item => {
             const def = defaultMenu.find(d => d.id === item.id);
-            if (def) {
-                item.href = def.href;
-                item.label = def.label;
-                if (item.isHidden === undefined) item.isHidden = false;
-            }
+            if (def) { item.href = def.href; item.label = def.label; if (item.isHidden === undefined) item.isHidden = false; }
         });
     }
 
@@ -184,33 +230,40 @@ document.addEventListener('DOMContentLoaded', () => {
               if (doc.exists && doc.data() && Array.isArray(doc.data().menu) && doc.data().menu.length > 0) {
                   const firebaseMenu = doc.data().menu;
                   defaultMenu.forEach(def => {
-                      if (!firebaseMenu.find(m => m.id === def.id)) {
-                          firebaseMenu.push(JSON.parse(JSON.stringify(def)));
-                      }
+                      if (!firebaseMenu.find(m => m.id === def.id)) firebaseMenu.push(JSON.parse(JSON.stringify(def)));
                   });
                   currentMenu = firebaseMenu;
               } else {
                   saveConfig();
               }
               renderMenu();
-          }, (error) => {
-              console.error("メニュー同期エラー:", error);
-              renderMenu();
-          });
+          }, () => renderMenu());
     }
 
     const saveConfig = () => {
         localStorage.setItem('trpg_menu_config', JSON.stringify(currentMenu));
         if (currentUser) {
             db.collection("users").doc(currentUser.uid).collection("settings").doc("menu_config")
-              .set({ menu: currentMenu }, { merge: true })
-              .catch(err => console.error("メニュー設定の保存に失敗:", err));
+              .set({ menu: currentMenu }, { merge: true });
         }
     };
 
     function renderMenu() {
         homeView.innerHTML = '';
+
+        // ★ AdminかDLC購入者以外には絶対に見せない機能のリスト！
+        const restrictedIds = ['scenario_poss', 'table_kp', 'table_pl'];
+
         currentMenu.forEach((item, index) => {
+
+            // ★ ここで制限をかける！
+            // 「admin」でもなく、「DLC所持（hasDLC=true）」でもない場合は、対象ボタンを隠す
+            if (restrictedIds.includes(item.id)) {
+                if (currentLicense !== 'admin' && !hasDLC) {
+                    return; // 描画せずにスキップ（隠蔽）
+                }
+            }
+
             if (!isEditMode && item.isHidden) return;
 
             const wrapper = document.createElement('div');
@@ -227,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span style="font-weight:bold; color:#777; font-size:13px;">${item.color.toUpperCase()}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap: 10px;">
-                        <button onclick="toggleVisibility(${index})" style="background:none; border:none; font-size:26px; cursor:pointer; padding:0; margin-right:5px; -webkit-tap-highlight-color: transparent;" title="表示/非表示">${visIcon}</button>
+                        <button onclick="toggleVisibility(${index})" style="background:none; border:none; font-size:26px; cursor:pointer; padding:0; margin-right:5px; -webkit-tap-highlight-color: transparent;">${visIcon}</button>
                         <div class="order-btn-group">
                             <button class="order-btn order-up" onclick="moveItem(${index}, -1)"></button>
                             <button class="order-btn order-down" onclick="moveItem(${index}, 1)"></button>
@@ -242,21 +295,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.toggleVisibility = (index) => {
-        currentMenu[index].isHidden = !currentMenu[index].isHidden;
-        saveConfig();
+    window.toggleVisibility = (index) => { currentMenu[index].isHidden = !currentMenu[index].isHidden; saveConfig(); };
+    window.moveItem = (index, dir) => {
+        const next = index + dir;
+        if(next >= 0 && next < currentMenu.length) {
+            [currentMenu[index], currentMenu[next]] = [currentMenu[next], currentMenu[index]];
+            saveConfig();
+        }
     };
 
     function showCustomConfirm(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('customConfirmModal');
-            const msgElement = document.getElementById('confirmMessage');
-            const btnOK = document.getElementById('btnConfirmOK');
-            const btnCancel = document.getElementById('btnConfirmCancel');
-            msgElement.innerText = message;
+            document.getElementById('confirmMessage').innerText = message;
             modal.style.display = 'flex';
-            btnOK.onclick = () => { modal.style.display = 'none'; resolve(true); };
-            btnCancel.onclick = () => { modal.style.display = 'none'; resolve(false); };
+            document.getElementById('btnConfirmOK').onclick = () => { modal.style.display = 'none'; resolve(true); };
+            document.getElementById('btnConfirmCancel').onclick = () => { modal.style.display = 'none'; resolve(false); };
         });
     }
 
@@ -287,8 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
         const x = cx - rect.left; const y = cy - rect.top;
-        const ctx = colorWheel.getContext('2d');
-        const p = ctx.getImageData(x, y, 1, 1).data;
+        const p = colorWheel.getContext('2d').getImageData(x, y, 1, 1).data;
         if(p[3] === 0) return;
         const hex = "#" + [p[0],p[1],p[2]].map(x => x.toString(16).padStart(2,'0')).join('').toUpperCase();
         updateModalUI(hex);
@@ -335,8 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btnModalApply').onclick = () => {
-        const item = currentMenu.find(m => m.id === editingId);
-        item.color = modalHexInput.value;
+        currentMenu.find(m => m.id === editingId).color = modalHexInput.value;
         saveConfig();
         colorModal.style.display = 'none';
     };
@@ -349,18 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMenu();
         });
 
-    window.moveItem = (index, dir) => {
-        const next = index + dir;
-        if(next >= 0 && next < currentMenu.length) {
-            [currentMenu[index], currentMenu[next]] = [currentMenu[next], currentMenu[index]];
-            saveConfig();
-        }
-    };
-
     window.resetMenuColors = () => {
         setTimeout(async () => {
-            const result = await showCustomConfirm('ツールの色を初期状態に戻しますか？');
-            if(result) {
+            if(await showCustomConfirm('ツールの色を初期状態に戻しますか？')) {
                 currentMenu.forEach((m) => {
                     const def = defaultMenu.find(d => d.id === m.id);
                     if(def) m.color = def.color;
@@ -372,17 +415,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.resetMenuOrder = () => {
         setTimeout(async () => {
-            const result = await showCustomConfirm('並び順と表示設定を初期状態に戻しますか？');
-            if(result) {
-                const orderedMenu = defaultMenu.map(def => {
+            if(await showCustomConfirm('並び順と表示設定を初期状態に戻しますか？')) {
+                currentMenu = defaultMenu.map(def => {
                     const current = currentMenu.find(c => c.id === def.id);
-                    return {
-                        ...def,
-                        color: current ? current.color : def.color,
-                        isHidden: false
-                    };
+                    return { ...def, color: current ? current.color : def.color, isHidden: false };
                 });
-                currentMenu = orderedMenu;
                 saveConfig();
             }
         }, 150);
@@ -393,16 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let dataCount = 0;
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith('trpg_')) {
-                allData[key] = localStorage.getItem(key);
-                dataCount++;
-            }
+            if (key.startsWith('trpg_')) { allData[key] = localStorage.getItem(key); dataCount++; }
         }
-
-        if (dataCount === 0) {
-            alert("バックアップするデータがまだありません。");
-            return;
-        }
+        if (dataCount === 0) return alert("バックアップするデータがまだありません。");
 
         const jsonStr = JSON.stringify(allData);
         const date = new Date();
@@ -413,15 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
             window.Android.saveBackup(jsonStr, fileName);
         } else {
             const blob = new Blob([jsonStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(blob);
             a.download = fileName;
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            alert("バックアップ処理を実行しました！ダウンロードフォルダを確認してください。");
+            alert("バックアップ処理を実行しました！");
         }
     };
 
@@ -430,26 +456,17 @@ document.addEventListener('DOMContentLoaded', () => {
         importFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    const isOk = await showCustomConfirm("データを復元しますか？\n※現在のデータは上書きされ、元に戻せません。");
-
-                    if (isOk) {
-                        for (const key in importedData) {
-                            localStorage.setItem(key, importedData[key]);
-                        }
+                    if (await showCustomConfirm("データを復元しますか？\n※現在のデータは上書きされ、元に戻せません。")) {
+                        for (const key in importedData) localStorage.setItem(key, importedData[key]);
                         alert("✅ データの復元が完了しました！アプリを再読み込みします。");
                         location.reload();
-                    } else {
-                        event.target.value = '';
                     }
                 } catch (err) {
-                    alert("❌ ファイルの読み込みに失敗しました。\n正しいバックアップファイルを選択してください。");
-                    console.error(err);
-                    event.target.value = '';
+                    alert("❌ ファイルの読み込みに失敗しました。");
                 }
             };
             reader.readAsText(file);
