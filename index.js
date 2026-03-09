@@ -44,17 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const usedPass = userData.usedPassword || "";
                     const verifiedAt = userData.verifiedAt ? userData.verifiedAt.toDate() : null;
 
-                    // 👑 1. 管理者 (admin2003) の判定：すべてのツールが使える！
+                    // 👑 1. 管理者 (admin2003) の判定：無期限
                     if (usedPass === "admin2003" || usedPass.includes("admin")) {
                         currentLicense = "admin";
-                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：管理者 (全機能解放)";
+                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：管理者 (無期限)";
                         document.getElementById('passwordModal').style.display = 'none';
                         startMenuSync();
                         return;
                     }
 
-                    // 💎 2. プロ版 (買い切り) の判定：無期限（一部ツールは隠れる）
-                    if (usedPass.includes("pro")) {
+                    // 💎 2. プロ版 (買い切り) の判定：無期限
+                    if (usedPass.includes("pro") || usedPass.includes("tail_pro")) {
                         currentLicense = "pro";
                         if(licenseDisplay) licenseDisplay.innerText = "現在の状態：プロ版 (無期限)";
                         document.getElementById('passwordModal').style.display = 'none';
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    // ⏳ 3. お試し版 (30日) の判定：期限付き（一部ツールは隠れる）
+                    // ⏳ 3. お試し版 (30日) の判定：期限付き
                     const now = new Date();
                     const limitTime = 30 * 24 * 60 * 60 * 1000; // 30日間
                     if (verifiedAt && (now - verifiedAt < limitTime)) {
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // ★ 合言葉の認証ボタンを押したときの処理
+    // ★ 合言葉の認証ボタンを押したときの処理（切り替え対応）
     // ==========================================
     document.getElementById('btnVerifyOrder').addEventListener('click', async () => {
         const secretInput = document.getElementById('orderNumberInput').value.trim();
@@ -124,14 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (passDoc.exists) {
                 const userRef = db.collection("users").doc(currentUser.uid);
 
-                // 通常のライセンス（お試し・Pro・Admin）の登録
+                // 新しい合言葉で上書き登録する（ここで期限もリセットされます）
                 await userRef.set({
                     hasValidOrder: true,
                     usedPassword: secretInput,
                     verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
 
-                alert("認証に成功しました！🎉");
+                alert("認証・切り替えに成功しました！🎉");
                 document.getElementById('passwordModal').style.display = 'none';
                 location.reload(); // メニュー表示を切り替えるため画面を再読み込み
 
@@ -222,15 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMenu() {
         homeView.innerHTML = '';
 
-        // ★ Admin以外には絶対に見せない機能のリスト！
-        const restrictedIds = ['scenario_poss', 'table_kp', 'table_pl'];
-
         currentMenu.forEach((item, index) => {
 
-            // ★ ここで制限をかける！「admin」ではない場合は、対象ボタンを隠す
-            if (restrictedIds.includes(item.id) && currentLicense !== 'admin') {
-                return; // 描画せずにスキップ（隠蔽）
-            }
+            // ★ ツール制限を撤廃しました！全員が全てのボタンを見られます。
 
             if (!isEditMode && item.isHidden) return;
 
