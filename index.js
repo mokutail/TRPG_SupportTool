@@ -17,7 +17,6 @@ const db = firebase.firestore();
 
 let currentUser = null;
 let currentLicense = "none"; // ユーザーの権限（admin, pro, trial）
-let hasDLC = false;          // ★ DLCを持っているかどうかのフラグ
 
 document.addEventListener('DOMContentLoaded', () => {
     const authBtn = document.getElementById('authBtn');
@@ -26,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const licenseDisplay = document.getElementById('licenseStatusDisplay');
 
     // ==========================================
-    // ★ ログイン・ログアウト ＆ ライセンス・DLC判定
+    // ★ ログイン・ログアウト ＆ ライセンス判定
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
         if (user) {
@@ -41,10 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userDoc = await db.collection("users").doc(currentUser.uid).get();
                 const userData = userDoc.exists ? userDoc.data() : {};
 
-                // ★ 追加：DLC（追加コンテンツ）を持っているかチェック！
-                const dlcSnapshot = await db.collection("users").doc(currentUser.uid).collection("dlc").get();
-                hasDLC = !dlcSnapshot.empty; // 1つでもDLC履歴があれば true になる
-
                 if (userData.hasValidOrder === true) {
                     const usedPass = userData.usedPassword || "";
                     const verifiedAt = userData.verifiedAt ? userData.verifiedAt.toDate() : null;
@@ -58,22 +53,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    // 💎 2. プロ版 (買い切り) の判定：無期限だがDLCがないと一部隠れる
+                    // 💎 2. プロ版 (買い切り) の判定：無期限（一部ツールは隠れる）
                     if (usedPass.includes("pro")) {
                         currentLicense = "pro";
-                        if(licenseDisplay) licenseDisplay.innerText = hasDLC ? "現在の状態：プロ版 (DLC解放済み)" : "現在の状態：プロ版 (通常)";
+                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：プロ版 (無期限)";
                         document.getElementById('passwordModal').style.display = 'none';
                         startMenuSync();
                         return;
                     }
 
-                    // ⏳ 3. お試し版 (30日) の判定：期限付き＆DLCがないと一部隠れる
+                    // ⏳ 3. お試し版 (30日) の判定：期限付き（一部ツールは隠れる）
                     const now = new Date();
                     const limitTime = 30 * 24 * 60 * 60 * 1000; // 30日間
                     if (verifiedAt && (now - verifiedAt < limitTime)) {
                         const remainingDays = Math.ceil((limitTime - (now - verifiedAt)) / (24 * 60 * 60 * 1000));
                         currentLicense = "trial";
-                        if(licenseDisplay) licenseDisplay.innerText = hasDLC ? `現在の状態：お試し版＋DLC (残り ${remainingDays} 日)` : `現在の状態：お試し版 (残り ${remainingDays} 日)`;
+                        if(licenseDisplay) licenseDisplay.innerText = `現在の状態：お試し版 (残り ${remainingDays} 日)`;
 
                         // 合言葉自体が消されていないか最終確認
                         const passDoc = await db.collection("valid_passwords").doc(usedPass).get();
@@ -100,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // ログアウト時
             currentUser = null;
             currentLicense = "none";
-            hasDLC = false;
             authBtn.innerHTML = '<span class="btn-icon">👤</span> ログイン';
             authBtn.style.backgroundColor = "#e3f2fd";
             authBtn.style.color = "#0277bd";
@@ -112,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function lockApp() {
         currentLicense = "none";
-        hasDLC = false;
         if(licenseDisplay) licenseDisplay.innerText = "現在の状態：未認証 (ロック中)";
         document.getElementById('home-view').innerHTML = '';
         document.getElementById('passwordModal').style.display = 'flex';
@@ -130,37 +123,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (passDoc.exists) {
                 const userRef = db.collection("users").doc(currentUser.uid);
-                const userDoc = await userRef.get();
-                // 既に何かのベースライセンスを持っているか確認
-                const currentUsedPass = userDoc.exists ? userDoc.data().usedPassword : null;
 
-                // 🎁 DLC解放用の合言葉だった場合
-                if (secretInput.includes("dlc")) {
-                    // DLCの金庫に記録する
-                    await userRef.collection("dlc").doc(secretInput).set({
-                        activatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                // 通常のライセンス（お試し・Pro・Admin）の登録
+                await userRef.set({
+                    hasValidOrder: true,
+                    usedPassword: secretInput,
+                    verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
 
-                    // ※もし「お試し版」すら入れていない真っ新な状態でDLCコードを入れた場合、それをベースにも設定してあげる
-                    if (!currentUsedPass) {
-                        await userRef.set({
-                            hasValidOrder: true,
-                            usedPassword: secretInput,
-                            verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                    }
-                    alert("🎁 追加コンテンツ(DLC)を解放しました！\n（ロックされていた機能が使えるようになります）");
-                }
-                // 💎 通常のライセンス（お試し・Pro・Admin）
-                else {
-                    await userRef.set({
-                        hasValidOrder: true,
-                        usedPassword: secretInput,
-                        verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                    alert("認証に成功しました！🎉");
-                }
-
+                alert("認証に成功しました！🎉");
                 document.getElementById('passwordModal').style.display = 'none';
                 location.reload(); // メニュー表示を切り替えるため画面を再読み込み
 
@@ -251,17 +222,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMenu() {
         homeView.innerHTML = '';
 
-        // ★ AdminかDLC購入者以外には絶対に見せない機能のリスト！
+        // ★ Admin以外には絶対に見せない機能のリスト！
         const restrictedIds = ['scenario_poss', 'table_kp', 'table_pl'];
 
         currentMenu.forEach((item, index) => {
 
-            // ★ ここで制限をかける！
-            // 「admin」でもなく、「DLC所持（hasDLC=true）」でもない場合は、対象ボタンを隠す
-            if (restrictedIds.includes(item.id)) {
-                if (currentLicense !== 'admin' && !hasDLC) {
-                    return; // 描画せずにスキップ（隠蔽）
-                }
+            // ★ ここで制限をかける！「admin」ではない場合は、対象ボタンを隠す
+            if (restrictedIds.includes(item.id) && currentLicense !== 'admin') {
+                return; // 描画せずにスキップ（隠蔽）
             }
 
             if (!isEditMode && item.isHidden) return;
