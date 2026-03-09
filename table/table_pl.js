@@ -99,10 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // ★ 鉄壁のプルダウン設定関数
+    // ★ プルダウン設定関数
     // ==========================================
 
-    function setupFixedSelect(displayId, optionsId, hiddenId) {
+    function setupFixedSelect(displayId, optionsId, hiddenId, onChange = null) {
         const display = document.getElementById(displayId);
         const options = document.getElementById(optionsId);
         const hidden = document.getElementById(hiddenId);
@@ -115,16 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             options.classList.toggle('active');
         });
-        options.querySelectorAll('.option-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const val = item.getAttribute('data-value');
-                if(val) { display.innerText = val; hidden.value = val; }
+
+        options.addEventListener('click', (e) => {
+            if (e.target.classList.contains('option-item')) {
+                const val = e.target.getAttribute('data-value');
+                if (val !== null) {
+                    display.innerText = e.target.innerText;
+                    hidden.value = val;
+                }
                 options.classList.remove('active');
-            });
+                if (onChange) onChange();
+            }
         });
     }
 
-    // ★ カスタムプルダウン（登録用） + 追加・削除時にコールバックを実行！
     function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText, onUpdate = null) {
         let currentList = defaultList;
         try {
@@ -133,9 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed)) currentList = parsed;
             }
-        } catch (e) {
-            console.warn("データ読込エラー", e);
-        }
+        } catch (e) {}
 
         const display = document.getElementById(displayId);
         const hidden = document.getElementById(hiddenId);
@@ -178,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 localStorage.setItem(storageKey, JSON.stringify(currentList));
                                 if (hidden.value === item) { display.innerText = placeholderText; hidden.value = ""; }
                                 renderOptions();
-                                if(onUpdate) onUpdate(); // ★ 追加・削除時にフィルター更新！
+                                if(onUpdate) onUpdate();
                             }
                         }, 800);
                     };
@@ -203,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentList.push(val);
                         localStorage.setItem(storageKey, JSON.stringify(currentList));
                         renderOptions();
-                        if(onUpdate) onUpdate(); // ★ 追加時にフィルター更新！
+                        if(onUpdate) onUpdate();
                     }
                     display.innerText = val;
                     hidden.value = val;
@@ -220,19 +222,16 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // ==========================================
-    // ★ 検索プルダウンの自動生成（性別）
-    // ==========================================
     function updateGenderFilterOptions() {
-        const filter = document.getElementById('filterGender');
-        if (!filter) return;
-        const currentVal = filter.value;
+        const filterOptions = document.getElementById('filterGenderOptions');
+        const filterHidden = document.getElementById('filterGenderHidden');
+        const filterDisplay = document.getElementById('filterGenderDisplay');
+        if (!filterOptions || !filterHidden || !filterDisplay) return;
 
-        // ① 登録済みの全PCデータから性別を抜き出す
+        const currentVal = filterHidden.value;
         const dataGenders = pcData.map(pc => pc.gender).filter(g => g && g !== '');
 
-        // ② 登録フォームのローカルストレージからユーザーが手動追加した性別を抜き出す
-        let customGenders = ['女', '男', 'その他'];
+        let customGenders = [];
         try {
             const stored = localStorage.getItem('trpg_custom_genders');
             if (stored) {
@@ -241,29 +240,37 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {}
 
-        // ①と②を合体させて、重複を消す！
-        const genders = [...new Set([...customGenders, ...dataGenders])];
+        const defaultGenders = ['女', '男'];
+        const genders = [...new Set([...defaultGenders, ...customGenders, ...dataGenders])];
 
-        filter.innerHTML = '<option value="すべて">性別: すべて</option>';
+        filterOptions.innerHTML = '<div class="option-item" data-value="すべて">性別: すべて</div>';
         genders.forEach(g => {
-            const opt = document.createElement('option');
-            opt.value = g;
-            opt.innerText = g;
-            filter.appendChild(opt);
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.setAttribute('data-value', g);
+            div.innerText = g;
+            filterOptions.appendChild(div);
         });
 
-        // 前の選択状態を復元
-        if (genders.includes(currentVal)) filter.value = currentVal;
-        else filter.value = 'すべて';
+        if (genders.includes(currentVal)) {
+            filterHidden.value = currentVal;
+            filterDisplay.innerText = currentVal;
+        } else if (currentVal === 'すべて') {
+            filterHidden.value = 'すべて';
+            filterDisplay.innerText = '性別: すべて';
+        } else {
+            filterHidden.value = 'すべて';
+            filterDisplay.innerText = '性別: すべて';
+            renderPcList();
+        }
     }
-
 
     setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
     setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
+    setupFixedSelect('filterStatusDisplay', 'filterStatusOptions', 'filterStatusHidden', renderPcList);
+    setupFixedSelect('filterGenderDisplay', 'filterGenderOptions', 'filterGenderHidden', renderPcList);
 
-    // ★ 性別プルダウンだけは、追加された瞬間に updateGenderFilterOptions を走らせる！
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
-
     const selectAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'pcAgeDisplay', 'pcAgeHidden', 'pcAgeOptions', '年齢');
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
     const selectJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'pcJobDisplay', 'pcJobHidden', 'pcJobOptions', '職業');
@@ -271,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', () => {
         document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
     });
-
 
     // --- UI制御・リスト描画など ---
     function updateFormTitle() {
@@ -306,43 +312,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    ['filterGender', 'filterTags', 'filterScenario', 'filterName', 'filterStatus', 'filterHO'].forEach(id => {
+    ['filterTags', 'filterScenario', 'filterName', 'filterHO'].forEach(id => {
         const el = document.getElementById(id);
-        if(el) {
-            el.addEventListener('input', renderPcList);
-            el.addEventListener('change', renderPcList);
-        }
+        if(el) el.addEventListener('input', renderPcList);
     });
 
     document.getElementById('btnResetFilter').addEventListener('click', () => {
         document.getElementById('filterName').value = '';
         document.getElementById('filterScenario').value = '';
-        document.getElementById('filterGender').value = 'すべて';
-        document.getElementById('filterStatus').value = 'すべて';
         document.getElementById('filterHO').value = '';
         document.getElementById('filterTags').value = '';
+
+        document.getElementById('filterGenderHidden').value = 'すべて';
+        document.getElementById('filterGenderDisplay').innerText = '性別: すべて';
+
+        document.getElementById('filterStatusHidden').value = 'すべて';
+        document.getElementById('filterStatusDisplay').innerText = '状態: すべて';
+
         renderPcList();
     });
 
-    // ★ ステータスバッジの色付け
     function getStatusBadgeHtml(status) {
         if (!status) return '';
         let color = '#757575';
         let bg = '#f5f5f5';
-        if (status === '生還' || status === '生存') { // 古い「生存」データも生還として扱う
+        if (status === '生還' || status === '生存') {
             color = '#2e7d32'; bg = '#e8f5e9'; status = '生還';
         } else if (status === 'ロスト') {
             color = '#c62828'; bg = '#ffebee';
         } else if (status === '継続不可') {
             color = '#ef6c00'; bg = '#fff3e0';
         }
-        return `<span style="display:inline-block; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:bold; color:${color}; background:${bg};">${status}</span>`;
+        return `<span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold; color:${color}; background:${bg};">${status}</span>`;
     }
 
     function renderPcList() {
+        if(!pcListContainer) return;
         pcListContainer.innerHTML = '';
-        const fGender = document.getElementById('filterGender').value;
-        const fStatus = document.getElementById('filterStatus').value;
+        const fGender = document.getElementById('filterGenderHidden').value;
+        const fStatus = document.getElementById('filterStatusHidden').value;
         const fTags = document.getElementById('filterTags').value.trim().toLowerCase();
         const fScenario = document.getElementById('filterScenario').value.trim().toLowerCase();
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
@@ -360,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
 
-            // 最新の履歴を取得
             const latestHistory = (pc.history && pc.history.length > 0) ? pc.history[pc.history.length - 1] : { scenario: '履歴なし', status: '不明', ho: '' };
             let latestStatus = latestHistory.status || '生還';
             if (latestStatus === '生存') latestStatus = '生還';
@@ -380,48 +387,28 @@ document.addEventListener('DOMContentLoaded', () => {
             hitCount++;
             const item = document.createElement('div');
             item.className = 'list-item';
-            let tagsHtml = '';
-            if (pc.tags) {
-                tagsHtml = `<div style="margin-bottom:8px;">` + pc.tags.split(',').map(t => `<span class="tag-pill">${t.trim()}</span>`).join(' ') + `</div>`;
-            }
             const imgStyle = pc.image ? `background-image: url(${pc.image});` : `display:flex; justify-content:center; align-items:center; color:#aaa; font-size:30px;`;
 
-            let histHtml = '';
-            if (pc.history && pc.history.length > 0) {
-                const recent = pc.history.slice(-2);
-                histHtml += `<div style="font-size:11px; color:#777; background:#f8f9fa; padding:8px; border-radius:8px; margin-top:10px;">`;
-                histHtml += `<div style="font-weight:bold; margin-bottom:4px;">📚 通過シナリオ (${pc.history.length}件)</div>`;
-                recent.forEach(h => {
-                    const dText = h.date ? `[${h.date}] ` : '';
-                    const hoText = h.ho ? ` - ${h.ho}` : '';
-                    histHtml += `<div>・${dText}${h.scenario}${hoText} ${getStatusBadgeHtml(h.status)}</div>`;
-                });
-                if (pc.history.length > 2) histHtml += `<div style="text-align:right; font-size:10px; margin-top:4px;">...他 ${pc.history.length - 2}件</div>`;
-                histHtml += `</div>`;
-            }
-
+            // ★ 不要なタグや履歴リストを完全削除し、スッキリしたレイアウトを構築
             item.innerHTML = `
-                <div class="item-actions-corner">
-                    <button class="corner-btn detail" onclick="openDetail('${pc.id}')">詳細</button>
-                    <button class="corner-btn continue" onclick="openContinueModal('${pc.id}')">継続</button>
-                    <button class="corner-btn delete" onclick="deletePc('${pc.id}')">削除</button>
+                <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10;">
+                    <button class="corner-btn detail" onclick="openDetail('${pc.id}')" style="background: #e8f5e9; color: #2e7d32; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">詳細</button>
+                    <button class="corner-btn continue" onclick="openContinueModal('${pc.id}')" style="background: #e3f2fd; color: #0277bd; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">継続</button>
+                    <button class="corner-btn delete" onclick="deletePc('${pc.id}')" style="background: #ffebee; color: #d32f2f; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">削除</button>
                 </div>
-                <div class="pl-list-layout">
-                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; gap:6px; width:80px;">
-                        <div class="pl-list-image" style="${imgStyle}">${pc.image ? '' : '👤'}</div>
+
+                <div class="pl-list-layout" style="display: flex; gap: 15px; align-items: flex-start;">
+                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; gap:8px; width:85px;">
+                        <div class="pl-list-image" style="width: 80px; height: 80px; border-radius: 12px; background-color: #f0f0f0; background-size: cover; background-position: center; border: 1px solid #eee; ${imgStyle}">${pc.image ? '' : '👤'}</div>
                         ${getStatusBadgeHtml(latestStatus)}
-                        <span style="font-size:10px; color:#999; font-weight:bold; text-align:center;">${pc.system}</span>
+                        <span style="font-size:11px; color:#999; font-weight:bold; text-align:center;">${pc.system}</span>
                     </div>
-                    <div class="pl-list-content">
-                        <div class="item-header">
-                            <div class="item-title">${pc.name}</div>
-                            <div class="item-subtitle">最新: ${latestHistory.scenario}</div>
-                        </div>
-                        ${tagsHtml}
-                        <div class="item-details">通過数: ${pc.history ? pc.history.length : 0} シナリオ</div>
+
+                    <div class="pl-list-content" style="flex: 1; min-width: 0; margin-top: 38px;"> <div class="item-title" style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; line-height: 1.3; word-break: break-all;">${pc.name}</div>
+                        <div class="item-subtitle" style="font-size: 13px; font-weight: bold; color: #666; margin-bottom: 6px;">最新: ${latestHistory.scenario}</div>
+                        <div class="item-details" style="font-size: 13px; color: #777; font-weight: bold;">通過数: ${pc.history ? pc.history.length : 0} シナリオ</div>
                     </div>
                 </div>
-                ${histHtml}
             `;
             pcListContainer.appendChild(item);
         });
