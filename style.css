@@ -174,20 +174,23 @@
    📱 スマホ専用のレイアウト調整
    ========================================== */
 @media screen and (max-width: 450px) {
-    /* タイトルの文字を少し小さくする */
-    .header-title {
-        font-size: 15px !important;
-    }
-    
-    /* ログイン・設定ボタンをコンパクトにする */
-    .setting-btn {
-        padding: 8px 12px !important;
-        font-size: 12px !important;
-        white-space: nowrap; /* ボタンの文字を絶対に改行させない魔法 */
+    /* ▼ アイコンをスマホの時だけ消す魔法！ ▼ */
+    .btn-icon {
+        display: none;
     }
 
-    /* ヘッダー自体の余白も少しスッキリさせる */
-    .top-header {
-        padding: 15px 10px 10px 10px !important;
+    /* ログインボタンなどをコンパクトにする */
+    .setting-btn {
+        padding: 8px 12px !important;
+        font-size: 11px !important; /* 文字を少し小さく */
+        white-space: nowrap; 
+    }
+
+    /* 設定ボタンをアイコン（⚙️/✅）だけにする魔法 */
+    #toggleEditMode {
+        width: 36px !important;
+        padding-left: 10px !important;
+        overflow: hidden;
+        text-align: left;
     }
 }
