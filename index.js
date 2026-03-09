@@ -119,11 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingId = null;
     let favorites = JSON.parse(localStorage.getItem('trpg_fav_colors')) || Array(8).fill('#FFFFFF');
 
-    // ★ メニューの同期システム
+    // ★ メニューの同期システム（エラーに強い頑丈バージョン！）
     function startMenuSync() {
         db.collection("users").doc(currentUser.uid).collection("settings").doc("menu_config")
           .onSnapshot((doc) => {
-              if (doc.exists) {
+              // doc.data().menu がちゃんと配列として存在するかチェック！
+              if (doc.exists && doc.data() && Array.isArray(doc.data().menu)) {
                   // Firebaseにデータがあれば、それを採用する
                   const firebaseMenu = doc.data().menu;
 
@@ -138,7 +139,13 @@ document.addEventListener('DOMContentLoaded', () => {
                   // まだFirebaseに保存されていなければ、今の設定を保存する
                   saveConfig();
               }
+              // 必ずメニューを描画する！
               renderMenu();
+              
+          }, (error) => {
+              // 万が一エラーが起きても止まらせない！
+              console.error("メニュー同期エラー:", error);
+              renderMenu(); // エラー時もローカルデータでとりあえず表示！
           });
     }
 
@@ -399,4 +406,5 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsText(file);
         });
     }
+
 });
