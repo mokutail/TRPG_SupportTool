@@ -28,30 +28,6 @@ const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
 document.addEventListener('DOMContentLoaded', () => {
     const pcListContainer = document.getElementById('pcListContainer');
 
-    // ==========================================
-    // ★ ログインチェックとリアルタイム同期
-    // ==========================================
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            try {
-                const userDoc = await db.collection("users").doc(user.uid).get();
-                const usedPass = userDoc.exists ? (userDoc.data().usedPassword || "") : "";
-                if (usedPass === "admin2003" || usedPass.includes("admin")) {
-                    currentUser = user;
-                    startRealtimeSync();
-                    return;
-                }
-                alert("❌ この機能を利用する権限がありません。");
-                window.location.href = "../index.html";
-            } catch (error) {
-                console.error("権限チェックエラー:", error);
-                window.location.href = "../index.html";
-            }
-        } else {
-            window.location.href = "../index.html";
-        }
-    });
-
     function startRealtimeSync() {
         db.collection("users").doc(currentUser.uid).collection("characters")
           .orderBy("createdAt", "desc")
@@ -343,9 +319,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (status === '継続不可') {
             color = '#ef6c00'; bg = '#fff3e0';
         }
-        return `<span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold; color:${color}; background:${bg};">${status}</span>`;
+        return `<span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold; color:${color}; background:${bg}; margin-bottom:4px;">${status}</span>`;
     }
 
+    // ==========================================
+    // ★ リスト描画処理（確実に描画されるように安全に修正！）
+    // ==========================================
     function renderPcList() {
         if(!pcListContainer) return;
         pcListContainer.innerHTML = '';
@@ -387,9 +366,15 @@ document.addEventListener('DOMContentLoaded', () => {
             hitCount++;
             const item = document.createElement('div');
             item.className = 'list-item';
-            const imgStyle = pc.image ? `background-image: url(${pc.image});` : `display:flex; justify-content:center; align-items:center; color:#aaa; font-size:30px;`;
 
-            // ★ 不要なタグや履歴リストを完全削除し、スッキリしたレイアウトを構築
+            // 安全な文字列生成（undefined回避）
+            const safeImage = pc.image ? `background-image: url(${pc.image});` : `display:flex; justify-content:center; align-items:center; color:#aaa; font-size:30px;`;
+            const safeName = pc.name || '名無し';
+            const safeSystem = pc.system || '';
+            const safeScenario = latestHistory.scenario || '履歴なし';
+            const historyCount = pc.history ? pc.history.length : 0;
+
+            // HTMLの組み立て
             item.innerHTML = `
                 <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10;">
                     <button class="corner-btn detail" onclick="openDetail('${pc.id}')" style="background: #e8f5e9; color: #2e7d32; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">詳細</button>
@@ -398,15 +383,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="pl-list-layout" style="display: flex; gap: 15px; align-items: flex-start;">
-                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; gap:8px; width:85px;">
-                        <div class="pl-list-image" style="width: 80px; height: 80px; border-radius: 12px; background-color: #f0f0f0; background-size: cover; background-position: center; border: 1px solid #eee; ${imgStyle}">${pc.image ? '' : '👤'}</div>
+                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:85px;">
+                        <div class="pl-list-image" style="width: 80px; height: 80px; border-radius: 12px; background-color: #f0f0f0; background-size: cover; background-position: center; border: 1px solid #eee; margin-bottom: 8px; ${safeImage}">${pc.image ? '' : '👤'}</div>
                         ${getStatusBadgeHtml(latestStatus)}
-                        <span style="font-size:11px; color:#999; font-weight:bold; text-align:center;">${pc.system}</span>
+                        <span style="font-size:11px; color:#999; font-weight:bold; text-align:center;">${safeSystem}</span>
                     </div>
 
-                    <div class="pl-list-content" style="flex: 1; min-width: 0; margin-top: 38px;"> <div class="item-title" style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; line-height: 1.3; word-break: break-all;">${pc.name}</div>
-                        <div class="item-subtitle" style="font-size: 13px; font-weight: bold; color: #666; margin-bottom: 6px;">最新: ${latestHistory.scenario}</div>
-                        <div class="item-details" style="font-size: 13px; color: #777; font-weight: bold;">通過数: ${pc.history ? pc.history.length : 0} シナリオ</div>
+                    <div class="pl-list-content" style="flex: 1; min-width: 0; margin-top: 38px;">
+                        <div class="item-title" style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; line-height: 1.3; word-break: break-all;">${safeName}</div>
+                        <div class="item-subtitle" style="font-size: 13px; font-weight: bold; color: #666; margin-bottom: 6px;">最新: ${safeScenario}</div>
+                        <div class="item-details" style="font-size: 13px; color: #777; font-weight: bold;">通過数: ${historyCount} シナリオ</div>
                     </div>
                 </div>
             `;
