@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>探索者の編集</title>
+    <title>探索者 編集</title>
     <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="table.css">
 </head>
@@ -13,9 +13,9 @@
     <button class="back-btn" onclick="location.href='detail.html'">🏠 戻る</button>
 </h2>
 
-<div class="view" style="padding-top:10px;">
+<div class="view" style="padding-bottom: 50px;">
     <div class="input-group">
-        <label class="group-label">👤 基本情報</label>
+        <label class="group-label">基本情報の修正</label>
 
         <div style="display: grid; grid-template-columns: 90px 1fr; gap: 15px; margin-bottom: 12px;">
             <div style="display:flex; flex-direction:column; align-items:center;">
@@ -25,8 +25,9 @@
                 </div>
                 <button type="button" class="clear-img-btn" id="editBtnClearImage" style="display:none;">クリア</button>
             </div>
-            <div style="display:flex; flex-direction:column; justify-content:center;">
-                <input type="text" id="editPcName" placeholder="PC名 (探索者名)" class="sc-band-input" style="height: 90px; font-size: 18px;">
+            <div style="display:flex; flex-direction:column; justify-content:center; gap: 8px;">
+                <input type="text" id="editPcKana" placeholder="名前の読み方" class="sc-band-input" style="padding: 10px 14px; font-size: 14px;">
+                <input type="text" id="editPcName" placeholder="*PC名 (探索者名)*" class="sc-band-input" style="padding: 14px; font-size: 16px;">
             </div>
         </div>
 
@@ -37,11 +38,12 @@
             </div>
             <input type="hidden" id="editPcGenderHidden" value="">
 
-            <div class="custom-select-wrapper" id="editPcAgeWrapper">
-                <div class="select-display" id="editPcAgeDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">年齢</div>
-                <div class="select-options" id="editPcAgeOptions"></div>
-            </div>
-            <input type="hidden" id="editPcAgeHidden" value="">
+            <input type="text" id="editPcHeightInput" placeholder="身長 (例: 170cm)" class="sc-band-input" style="padding: 14px 10px; font-size: 14px; text-align: center;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <input type="text" id="editPcAgeInput" placeholder="年齢 (例: 24)" class="sc-band-input" style="padding: 14px 10px; font-size: 14px; text-align: center;">
+            <input type="text" id="editPcBirthdayInput" placeholder="誕生日 (例: 4/1)" class="sc-band-input" style="padding: 14px 10px; font-size: 14px; text-align: center;">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
@@ -59,23 +61,25 @@
         </div>
 
         <div style="margin-bottom:12px;">
-            <input type="text" id="editPcTags" placeholder="タグ" class="sc-band-input">
+            <input type="text" id="editPcTags" placeholder="タグ" class="sc-band-input" style="padding: 12px 16px;">
         </div>
+
         <div style="margin-bottom:12px;">
-            <input type="url" id="editPcUrl" placeholder="キャラシURL" class="sc-band-input">
+            <input type="url" id="editPcUrl" placeholder="いあきゃら等のURL" class="sc-band-input">
         </div>
+
         <div style="margin-bottom:15px;">
-            <textarea id="editPcIachara" placeholder="▼ いあきゃらのコマ出力(JSON)やチャパレを貼り付けると上書き更新されます" class="sc-band-input" style="height: 60px; resize: none; font-size: 12px;"></textarea>
+            <textarea id="editPcIachara" placeholder="▼ 能力値や技能を再設定する場合は、いあきゃらのコマ出力(JSON)やチャパレを再度コピペしてください。※空欄なら現在のデータが維持されます。" class="sc-band-input" style="height: 80px; resize: none; font-size: 12px;"></textarea>
         </div>
     </div>
 
     <div class="input-group">
-        <label class="group-label">📌 通過シナリオ履歴の編集</label>
+        <label class="group-label">通過シナリオ履歴の修正</label>
         <div id="editHistoryContainer"></div>
-        <button class="action-btn" id="btnAddHistoryRow" style="background-color: #e0f2f1; color: #00695c; box-shadow: none; margin-bottom: 25px; padding:12px;">➕ 履歴を1件追加</button>
-
-        <button class="action-btn edit-mode" id="btnSaveEdit">💾 変更を保存して戻る</button>
+        <button id="btnAddHistoryRow" style="width:100%; padding:12px; background:#e8f5e9; color:#2e7d32; border:2px dashed #a5d6a7; border-radius:12px; font-weight:bold; cursor:pointer;">＋ 履歴を追加</button>
     </div>
+
+    <button class="action-btn edit-mode" id="btnSaveEdit" style="margin-top: 20px;">💾 変更を保存する</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
