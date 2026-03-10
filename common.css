@@ -15,7 +15,7 @@
 .header-title {
     color: #76ADAF;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 18px;
     margin: 0;
     /* 文字の長押し選択を防ぐ */
     user-select: none;
