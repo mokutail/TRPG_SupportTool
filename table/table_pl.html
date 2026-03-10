@@ -188,6 +188,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 10px;">
             <label class="group-label" style="margin: 0;">📊 探索者リスト</label>
             <div style="display: flex; gap: 6px; align-items: center;">
+                <button id="sortOrderBtn" class="sort-order-btn" data-order="desc">🔽 降順</button>
                 <select id="sortSelect" class="cute-select" style="width: 120px; padding: 8px 12px; font-size: 12px; border-radius: 8px;">
                     <option value="default">登録順</option>
                     <option value="age">年齢順</option>
@@ -195,7 +196,6 @@
                     <option value="birthday">誕生日順</option>
                     <option value="kana">あいうえお順</option>
                 </select>
-                <button id="sortOrderBtn" class="sort-order-btn" data-order="desc">🔽 降順</button>
             </div>
         </div>
         <div id="pcListContainer"></div>

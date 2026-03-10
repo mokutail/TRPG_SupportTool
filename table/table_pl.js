@@ -263,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
         genders.forEach(g => {
             const opt = document.createElement('option');
             opt.value = g;
-            // ★ 「女」「男」のようにシンプルに表示する
             opt.innerText = g;
             filter.appendChild(opt);
         });
@@ -286,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const sSel = document.getElementById('sortSelect');
     if(sSel) sSel.addEventListener('change', renderPcList);
 
-    // ★ 昇順・降順 切り替えボタンの処理
     const sOrderBtn = document.getElementById('sortOrderBtn');
     if (sOrderBtn) {
         sOrderBtn.addEventListener('click', () => {
@@ -298,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sOrderBtn.setAttribute('data-order', 'desc');
                 sOrderBtn.innerText = '🔽 降順';
             }
-            renderPcList(); // リストを再描画
+            renderPcList();
         });
     }
 
@@ -457,7 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // ★ 並べ替え処理（昇順・降順対応）
         filteredPcs.sort((a, b) => {
             let result = 0;
 
@@ -482,13 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const strB = b.pc.kana || b.pc.name || '';
                 result = strA.localeCompare(strB, 'ja');
             } else {
-                // デフォルト（登録順）の場合は createdAt で判定
                 const timeA = a.pc.createdAt || 0;
                 const timeB = b.pc.createdAt || 0;
                 result = timeA - timeB;
             }
 
-            // 降順(desc)なら結果を反転させる
             return sortOrder === 'desc' ? -result : result;
         });
 
@@ -514,18 +509,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeScenario = latestHistory.scenario || '履歴なし';
             const historyCount = pc.history ? pc.history.length : 0;
 
+            // ★ 画像サイズを100px×100pxに拡大し、システム名をボタン群の左に移動！
             item.innerHTML = `
-                <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10;">
+                <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 6px; z-index: 10;">
+                    <span style="font-size:11px; color:#999; font-weight:bold; text-align:center; margin-right: 4px;">${safeSystem}</span>
                     <button class="corner-btn detail" onclick="openDetail('${pc.id}')" style="background: #e8f5e9; color: #2e7d32; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">詳細</button>
                     <button class="corner-btn continue" onclick="openContinueModal('${pc.id}')" style="background: #e3f2fd; color: #0277bd; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">継続</button>
                     <button class="corner-btn delete" onclick="deletePc('${pc.id}')" style="background: #ffebee; color: #d32f2f; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">削除</button>
                 </div>
 
                 <div class="pl-list-layout" style="display: flex; gap: 15px; align-items: flex-start;">
-                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:85px;">
-                        <div class="pl-list-image" style="width: 80px; height: 80px; border-radius: 12px; background-color: #f0f0f0; background-size: cover; background-position: center; border: 1px solid #eee; margin-bottom: 8px; ${safeImage}">${pc.image ? '' : '👤'}</div>
+                    <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:105px;">
+                        <div class="pl-list-image" style="width: 100px; height: 100px; border-radius: 12px; background-color: #f0f0f0; background-size: cover; background-position: center; border: 1px solid #eee; margin-bottom: 8px; ${safeImage}">${pc.image ? '' : '👤'}</div>
                         ${getStatusBadgeHtml(latestStatus)}
-                        <span style="font-size:11px; color:#999; font-weight:bold; text-align:center;">${safeSystem}</span>
                     </div>
 
                     <div class="pl-list-content" style="flex: 1; min-width: 0; margin-top: 38px;">
