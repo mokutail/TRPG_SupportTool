@@ -67,14 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let tagsHtml = '';
         if (pc.tags && typeof pc.tags === 'string') {
-            tagsHtml = `<div style="margin-top:8px;">` + pc.tags.split(',').map(t => `<span class="tag-pill">${t.trim()}</span>`).join(' ') + `</div>`;
+            tagsHtml = `<div style="margin-top:12px;">` + pc.tags.split(',').map(t => `<span class="tag-pill">${t.trim()}</span>`).join(' ') + `</div>`;
         }
 
-        let actionButtonsHtml = `<div style="display:flex; gap:10px; margin-top:12px;">`;
+        // ★ ボタンを縦並びにして、写真の下に配置するためのHTML
+        let actionButtonsHtml = `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px; width:100%;">`;
         if (pc.url) {
-            actionButtonsHtml += `<a href="${pc.url}" target="_blank" style="background:#e3f2fd; color:#0277bd; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🔗 キャラシURL</a>`;
+            actionButtonsHtml += `<a href="${pc.url}" target="_blank" style="background:#e3f2fd; color:#0277bd; padding:8px 0; border-radius:8px; font-size:11px; font-weight:bold; text-decoration:none; text-align:center; display:block; width:100%; box-sizing:border-box;">🔗 キャラシ</a>`;
         }
-        actionButtonsHtml += `<button onclick="jumpToEditMode()" style="background:#fff3e0; color:#e65100; border:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">✍️ データを修正</button>`;
+        actionButtonsHtml += `<button onclick="jumpToEditMode()" style="background:#fff3e0; color:#e65100; border:none; padding:8px 0; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width:100%; box-sizing:border-box;">✍️ データ修正</button>`;
         actionButtonsHtml += `</div>`;
 
         let statsHtml = '';
@@ -254,30 +255,37 @@ document.addEventListener('DOMContentLoaded', () => {
             if (numStr.length === 3) {
                 displayBirthday = `${numStr.substring(0, 1)}月${numStr.substring(1, 3)}日`;
             } else if (numStr.length === 4) {
-                const m = parseInt(numStr.substring(0, 2), 10); // 04 を 4 にする
-                const d = parseInt(numStr.substring(2, 4), 10); // 05 を 5 にする
+                const m = parseInt(numStr.substring(0, 2), 10);
+                const d = parseInt(numStr.substring(2, 4), 10);
                 displayBirthday = `${m}月${d}日`;
             }
         }
 
-        // ★ 種族の下に職業が来るように改行
+        // ★ 全体のレイアウト構造を調整
+        // align-items: flex-start を付与し、左側に画像とボタンのコンテナを作成
         detailView.innerHTML = `
-            <div class="detail-header">
-                <div class="detail-img" style="${imgStyle}">${pc.image ? '' : '👤'}</div>
-                <div class="detail-info">
+            <div class="detail-header" style="align-items: flex-start;">
+
+                <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; width: 110px;">
+                    <div class="detail-img" style="${imgStyle} width:100px; height:100px; margin:0 auto;">${pc.image ? '' : '👤'}</div>
+                    ${actionButtonsHtml}
+                </div>
+
+                <div class="detail-info" style="flex: 1; min-width: 0;">
                     <span style="font-size:11px; color:#999; font-weight:bold;">${pc.system || 'システム未設定'}</span>
                     ${safeKana}
-                    <h2 style="margin-top:0;">${pc.name || '名無し'}</h2>
+                    <h2 style="margin-top:0; margin-bottom: 8px;">${pc.name || '名無し'}</h2>
 
-                    <div style="font-size:13px; color:#555; font-weight:bold; line-height:1.6;">
-                        <div>性別: ${pc.gender || '未設定'} / 身長: ${displayHeight}</div>
-                        <div>年齢: ${displayAge} / 誕生日: ${displayBirthday}</div>
-                        <div>種族: ${pc.race || '未設定'}</div>
+                    <div style="font-size:13px; color:#555; font-weight:bold; line-height:1.8;">
+                        <div>性別: ${pc.gender || '未設定'}</div>
+                        <div>誕生日: ${displayBirthday}</div>
+                        <div>年齢: ${displayAge}</div>
                         <div>職業: ${pc.job || '未設定'}</div>
+                        <div>身長: ${displayHeight}</div>
+                        <div>種族: ${pc.race || '未設定'}</div>
                     </div>
 
                     ${tagsHtml}
-                    ${actionButtonsHtml}
                 </div>
             </div>
             ${statsHtml}
