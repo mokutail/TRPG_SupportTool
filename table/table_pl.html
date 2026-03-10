@@ -46,12 +46,9 @@
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="text" id="filterAge" placeholder="年齢で検索 (例: 20代, 24)" class="sc-band-input" style="flex:1;"> <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
             </div>
-            <div style="margin-bottom:15px;">
-                <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="width:100%;">
-            </div>
-
             <button id="btnResetFilter" style="width:100%; padding:12px; border-radius:12px; border:2px solid #eee; background:#fff; font-weight:bold; color:#76ADAF; cursor:pointer;">🔄 絞り込みをリセット</button>
             <div class="hit-count-display" style="text-align:right; font-size:12px; color:#888; margin-top:10px;">該当件数: <strong id="pcHitCount" style="color:#76ADAF; font-size:16px;">0</strong> 件</div>
         </div>
@@ -80,7 +77,11 @@
             </div>
             <input type="hidden" id="pcGenderHidden" value="">
 
-            <input type="text" id="pcAgeInput" placeholder="年齢 (例: 24)" class="sc-band-input" style="padding: 14px 10px; font-size: 14px; text-align: center;">
+            <div class="custom-select-wrapper" id="pcAgeWrapper">
+                <div class="select-display" id="pcAgeDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">年齢</div>
+                <div class="select-options" id="pcAgeOptions"></div>
+            </div>
+            <input type="hidden" id="pcAgeHidden" value="">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
