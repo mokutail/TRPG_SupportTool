@@ -3,7 +3,7 @@
 .header-title {
     color: #76ADAF;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 16px;
     margin: 0;
 }
 
@@ -195,4 +195,5 @@
     #toggleEditMode {
         padding: 8px 10px !important;
     }
+
 }
