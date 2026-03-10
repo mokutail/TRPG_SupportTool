@@ -70,8 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tagsHtml = `<div style="margin-top:12px;">` + pc.tags.split(',').map(t => `<span class="tag-pill">${t.trim()}</span>`).join(' ') + `</div>`;
         }
 
-        // ★ ボタンを縦並びにして、写真の下に配置するためのHTML
-        let actionButtonsHtml = `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px; width:100%;">`;
+        // ★ ボタンを縦並びにして、幅を130pxに統一
+        let actionButtonsHtml = `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px; width:130px;">`;
         if (pc.url) {
             actionButtonsHtml += `<a href="${pc.url}" target="_blank" style="background:#e3f2fd; color:#0277bd; padding:8px 0; border-radius:8px; font-size:11px; font-weight:bold; text-decoration:none; text-align:center; display:block; width:100%; box-sizing:border-box;">🔗 キャラシ</a>`;
         }
@@ -261,17 +261,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ★ 全体のレイアウト構造を調整
-        // align-items: flex-start を付与し、左側に画像とボタンのコンテナを作成
+        // ★ 左側のコンテナの幅を 130px に設定し、画像を 130x130 に変更
+        // ★ 右側のコンテナ (detail-info) に margin-left: 10px; を追加
         detailView.innerHTML = `
             <div class="detail-header" style="align-items: flex-start;">
 
-                <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; width: 110px;">
-                    <div class="detail-img" style="${imgStyle} width:100px; height:100px; margin:0 auto;">${pc.image ? '' : '👤'}</div>
+                <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; width: 130px;">
+                    <div class="detail-img" style="${imgStyle} width:130px; height:130px; margin:0 auto;">${pc.image ? '' : '👤'}</div>
                     ${actionButtonsHtml}
                 </div>
 
-                <div class="detail-info" style="flex: 1; min-width: 0;">
+                <div class="detail-info" style="flex: 1; min-width: 0; margin-left: 10px;">
                     <span style="font-size:11px; color:#999; font-weight:bold;">${pc.system || 'システム未設定'}</span>
                     ${safeKana}
                     <h2 style="margin-top:0; margin-bottom: 8px;">${pc.name || '名無し'}</h2>
