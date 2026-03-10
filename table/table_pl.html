@@ -68,22 +68,11 @@
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="text" id="filterAge" placeholder="年齢で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterAge" placeholder="年齢で検索 (例: 20代, 24)" class="sc-band-input" style="flex:1;">
                 <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
             </div>
             <div style="margin-bottom:15px;">
                 <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="width:100%;">
-            </div>
-
-            <div style="margin-bottom:15px; border-top: 1px dashed #ccc; padding-top: 15px;">
-                <label style="font-size:12px; color:#888; font-weight:bold; margin-bottom:6px; display:block;">▼ 並べ替え</label>
-                <select id="sortSelect" class="cute-select" style="width:100%;">
-                    <option value="default">登録順 (デフォルト)</option>
-                    <option value="age">年齢順</option>
-                    <option value="height">身長順</option>
-                    <option value="birthday">誕生日順</option>
-                    <option value="kana">名前のあいうえお順</option>
-                </select>
             </div>
 
             <button id="btnResetFilter" style="width:100%; padding:12px; border-radius:12px; border:2px solid #eee; background:#fff; font-weight:bold; color:#76ADAF; cursor:pointer;">🔄 絞り込みをリセット</button>
@@ -173,7 +162,16 @@
     </div>
 
     <div class="input-group">
-        <label class="group-label">📊 探索者リスト</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label class="group-label" style="margin: 0;">📊 探索者リスト</label>
+            <select id="sortSelect" class="cute-select" style="width: 140px; padding: 8px 12px; font-size: 12px; border-radius: 8px;">
+                <option value="default">登録順</option>
+                <option value="age">年齢順</option>
+                <option value="height">身長順</option>
+                <option value="birthday">誕生日順</option>
+                <option value="kana">あいうえお順</option>
+            </select>
+        </div>
         <div id="pcListContainer"></div>
     </div>
 </div>

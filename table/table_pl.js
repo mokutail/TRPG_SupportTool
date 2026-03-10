@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fStat = document.getElementById('filterStatus');
     if(fStat) fStat.addEventListener('change', renderPcList);
     const sSel = document.getElementById('sortSelect');
-    if(sSel) sSel.addEventListener('change', renderPcList); // ★ 並べ替えイベント
+    if(sSel) sSel.addEventListener('change', renderPcList);
 
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
@@ -375,7 +375,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('pcHitCount').innerText = "0"; return;
         }
 
-        // ★ まず条件に合うものを配列に集める（ソートするため）
         let filteredPcs = [];
 
         pcData.forEach((pc) => {
@@ -390,13 +389,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
 
+            // ★ 「20代」での検索を賢く処理
             if (fAge !== '') {
                 const pcAgeStr = (pc.age || '').toString().toLowerCase();
-                if (!pcAgeStr.includes(fAge.toLowerCase())) {
-                    const cleanAge = pcAgeStr.replace(/[^0-9]/g, '');
-                    const searchAge = fAge.replace(/[^0-9]/g, '');
-                    if (cleanAge !== searchAge || searchAge === '') {
-                        return;
+
+                if (fAge.includes('代')) {
+                    // 「20代」等で検索された場合、年代を抽出
+                    const targetDecade = parseInt(fAge.replace(/[^0-9]/g, ''));
+                    const pcAgeNum = parseInt(pcAgeStr.replace(/[^0-9]/g, ''));
+
+                    // 「20代」なら 20〜29 をヒットさせる
+                    if (isNaN(pcAgeNum) || pcAgeNum < targetDecade || pcAgeNum >= targetDecade + 10) {
+                        return; // 弾く
+                    }
+                } else {
+                    // 「24」などピンポイント検索の場合
+                    if (!pcAgeStr.includes(fAge.toLowerCase())) {
+                        const cleanAge = pcAgeStr.replace(/[^0-9]/g, '');
+                        const searchAge = fAge.replace(/[^0-9]/g, '');
+                        if (cleanAge !== searchAge || searchAge === '') {
+                            return; // 弾く
+                        }
                     }
                 }
             }
@@ -410,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 filterStatusVal = filterStatusVal.replace('状態: ', '').trim();
             }
             if (filterStatusVal !== 'すべて') {
-                if (filterStatusVal === '生還' && latestStatus !== '生還' && latestStatus !== '生存') return;
+                if (filterStatusVal === '生生還' && latestStatus !== '生還' && latestStatus !== '生存') return;
                 if (filterStatusVal !== '生還' && latestStatus !== filterStatusVal) return;
             }
 
@@ -429,18 +442,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // ★ 並べ替え（ソート）処理
         filteredPcs.sort((a, b) => {
             if (sortVal === 'age') {
                 const numA = parseInt((a.pc.age || '').replace(/[^0-9]/g, '')) || 0;
                 const numB = parseInt((b.pc.age || '').replace(/[^0-9]/g, '')) || 0;
-                return numA - numB; // 年齢順
+                return numA - numB;
             } else if (sortVal === 'height') {
                 const numA = parseFloat((a.pc.height || '').replace(/[^0-9.]/g, '')) || 0;
                 const numB = parseFloat((b.pc.height || '').replace(/[^0-9.]/g, '')) || 0;
-                return numA - numB; // 身長順
+                return numA - numB;
             } else if (sortVal === 'birthday') {
-                // 誕生日 (例: 4/1) を 401 のような数字にして比較
                 const parseDate = (str) => {
                     if (!str) return 9999;
                     const match = str.match(/(\d+)[^\d]+(\d+)/);
@@ -451,9 +462,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (sortVal === 'kana') {
                 const strA = a.pc.kana || a.pc.name || '';
                 const strB = b.pc.kana || b.pc.name || '';
-                return strA.localeCompare(strB, 'ja'); // あいうえお順
+                return strA.localeCompare(strB, 'ja');
             }
-            return 0; // デフォルト (Firebaseから取得した新着順を維持)
+            return 0;
         });
 
         if (filteredPcs.length === 0) {
@@ -563,12 +574,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return alert("ログインしてください");
 
         const name = document.getElementById('pcName').value.trim();
-        const kana = document.getElementById('pcKana') ? document.getElementById('pcKana').value.trim() : ''; // ★ 読み方取得
+        const kana = document.getElementById('pcKana') ? document.getElementById('pcKana').value.trim() : '';
         const gender = document.getElementById('pcGenderHidden').value;
-        const height = document.getElementById('pcHeightInput') ? document.getElementById('pcHeightInput').value.trim() : ''; // ★ 身長取得
+        const height = document.getElementById('pcHeightInput') ? document.getElementById('pcHeightInput').value.trim() : '';
         const ageEl = document.getElementById('pcAgeInput');
         const age = ageEl ? ageEl.value.trim() : '';
-        const birthday = document.getElementById('pcBirthdayInput') ? document.getElementById('pcBirthdayInput').value.trim() : ''; // ★ 誕生日取得
+        const birthday = document.getElementById('pcBirthdayInput') ? document.getElementById('pcBirthdayInput').value.trim() : '';
         const race = document.getElementById('pcRaceHidden').value;
         const job = document.getElementById('pcJobHidden').value;
         const tags = document.getElementById('pcTags').value.trim();
@@ -600,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const now = Date.now();
         const newPc = {
-            system, name, kana, gender, height, age, birthday, race, job, tags, url, image: currentImageBase64, // ★ 保存項目に追加
+            system, name, kana, gender, height, age, birthday, race, job, tags, url, image: currentImageBase64,
             stats: parsedStats, skills: parsedSkills,
             history: [{ scenario: hScen, ho: hHO, date: hDate, status: hStatus }],
             createdAt: now,
@@ -609,10 +620,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         db.collection("users").doc(currentUser.uid).collection("characters").add(newPc).then(() => {
             document.getElementById('pcName').value = '';
-            if(document.getElementById('pcKana')) document.getElementById('pcKana').value = ''; // ★ リセット
+            if(document.getElementById('pcKana')) document.getElementById('pcKana').value = '';
             if(document.getElementById('pcAgeInput')) document.getElementById('pcAgeInput').value = '';
-            if(document.getElementById('pcHeightInput')) document.getElementById('pcHeightInput').value = ''; // ★ リセット
-            if(document.getElementById('pcBirthdayInput')) document.getElementById('pcBirthdayInput').value = ''; // ★ リセット
+            if(document.getElementById('pcHeightInput')) document.getElementById('pcHeightInput').value = '';
+            if(document.getElementById('pcBirthdayInput')) document.getElementById('pcBirthdayInput').value = '';
             document.getElementById('pcTags').value = '';
             document.getElementById('pcUrl').value = '';
             document.getElementById('pcIachara').value = '';
