@@ -8,16 +8,6 @@ const firebaseConfig = {
   storageBucket: "trpg-supporttool.firebasestorage.app",
   messagingSenderId: "163289928352",
   appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
-};// ==========================================
-// ★ Firebaseの初期設定
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
-  authDomain: "trpg-supporttool.firebaseapp.com",
-  projectId: "trpg-supporttool",
-  storageBucket: "trpg-supporttool.firebasestorage.app",
-  messagingSenderId: "163289928352",
-  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
 };
 
 if (!firebase.apps.length) {
@@ -27,12 +17,11 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
-let pc = null; // 取得したPCデータを入れる箱
+let pc = null;
 let sortOrder = 'asc';
 
 document.addEventListener('DOMContentLoaded', () => {
     const detailView = document.getElementById('detailView');
-    // 見たいPCのIDだけは、今まで通りlocalStorageから受け取ります
     const targetId = localStorage.getItem('trpg_current_pc_id');
 
     if (!targetId) {
@@ -41,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // ★ 2. ログインチェックと、個別データのリアルタイム監視
+    // ★ ログインチェック
     // ==========================================
     auth.onAuthStateChanged((user) => {
         if (user) {
@@ -54,15 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function startRealtimeSync() {
-        // "characters" という金庫の中から、targetId に一致する書類(doc)だけをピンポイントで監視！
+        // ★ 修正： "pcs" ではなく "characters" からデータを取得！
         db.collection("users").doc(currentUser.uid).collection("characters").doc(targetId)
           .onSnapshot((doc) => {
               if (doc.exists) {
-                  // データが見つかったら、中身を取り出して画面を描画！
                   pc = { id: doc.id, ...doc.data() };
                   renderDetail();
               } else {
-                  // もし別の端末でこのPCが削除されていたら、エラー表示にする
                   detailView.innerHTML = '<div style="text-align:center; padding:30px; color:#999; font-weight:bold;">データが見つかりません（削除された可能性があります）。</div>';
               }
           }, (error) => {
@@ -72,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // ★ 3. 司令官が作った最高のUI描画ロジック（そのまま！）
+    // ★ UI描画ロジック
     // ==========================================
     function renderDetail() {
         if (!pc) return;
@@ -84,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tagsHtml = `<div style="margin-top:8px;">` + pc.tags.split(',').map(t => `<span class="tag-pill">${t.trim()}</span>`).join(' ') + `</div>`;
         }
 
-        let actionButtonsHtml = `<div style="display:flex; gap:10px; margin-top:8px;">`;
+        let actionButtonsHtml = `<div style="display:flex; gap:10px; margin-top:12px;">`;
         if (pc.url) {
             actionButtonsHtml += `<a href="${pc.url}" target="_blank" style="background:#e3f2fd; color:#0277bd; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🔗 キャラシURL</a>`;
         }
@@ -253,14 +240,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // ★ 新しく追加した「読み方」「身長」「誕生日」も表示されるように整理しました
+        const safeKana = pc.kana ? `<div style="font-size:12px; color:#888; font-weight:bold; margin-bottom:2px;">${pc.kana}</div>` : '';
+        const displayAge = pc.age ? (/^\d+$/.test(pc.age) ? pc.age + '歳' : pc.age) : '未設定';
+
         detailView.innerHTML = `
             <div class="detail-header">
                 <div class="detail-img" style="${imgStyle}">${pc.image ? '' : '👤'}</div>
                 <div class="detail-info">
                     <span style="font-size:11px; color:#999; font-weight:bold;">${pc.system || 'システム未設定'}</span>
-                    <h2>${pc.name || '名無し'}</h2>
-                    <p>性別: ${pc.gender || '未設定'} / 年齢: ${pc.age || '未設定'}</p>
-                    <p>種族: ${pc.race || '未設定'} / 職業: ${pc.job || '未設定'}</p>
+                    ${safeKana}
+                    <h2 style="margin-top:0;">${pc.name || '名無し'}</h2>
+
+                    <div style="font-size:13px; color:#555; font-weight:bold; line-height:1.6;">
+                        <div>性別: ${pc.gender || '未設定'} / 身長: ${pc.height || '未設定'}</div>
+                        <div>年齢: ${displayAge} / 誕生日: ${pc.birthday || '未設定'}</div>
+                        <div>種族: ${pc.race || '未設定'} / 職業: ${pc.job || '未設定'}</div>
+                    </div>
+
                     ${tagsHtml}
                     ${actionButtonsHtml}
                 </div>
@@ -270,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ${historyHtml}
         `;
 
-        // ソートボタンのイベントを再登録
         const sortRadios = document.querySelectorAll('input[name="historySort"]');
         sortRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
@@ -280,10 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ★ 修正画面への遷移
     window.jumpToEditMode = () => {
-        // 次の画面（edit_pc.html）にどのPCを編集するか伝えるためにIDだけ保存
         localStorage.setItem('trpg_edit_pc_id', pc.id);
-        window.location.href = 'edit_pc.html'; // ※ファイル名は司令官の環境に合わせてください
+        window.location.href = 'edit_pc.html';
     };
 });
