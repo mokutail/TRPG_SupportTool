@@ -28,6 +28,30 @@ const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
 document.addEventListener('DOMContentLoaded', () => {
     const pcListContainer = document.getElementById('pcListContainer');
 
+    // ==========================================
+    // ★ ログインチェックとリアルタイム同期
+    // ==========================================
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const userDoc = await db.collection("users").doc(user.uid).get();
+                const usedPass = userDoc.exists ? (userDoc.data().usedPassword || "") : "";
+                if (usedPass === "admin2003" || usedPass.includes("admin")) {
+                    currentUser = user;
+                    startRealtimeSync();
+                    return;
+                }
+                alert("❌ この機能を利用する権限がありません。");
+                window.location.href = "../index.html";
+            } catch (error) {
+                console.error("権限チェックエラー:", error);
+                window.location.href = "../index.html";
+            }
+        } else {
+            window.location.href = "../index.html";
+        }
+    });
+
     function startRealtimeSync() {
         db.collection("users").doc(currentUser.uid).collection("characters")
           .orderBy("createdAt", "desc")
@@ -216,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {}
 
-        const defaultGenders = ['女', '男'];
+        const defaultGenders = ['女', '男']; // ★ 「その他」を削除！
         const genders = [...new Set([...defaultGenders, ...customGenders, ...dataGenders])];
 
         filterOptions.innerHTML = '<div class="option-item" data-value="すべて">性別: すべて</div>';
@@ -246,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFixedSelect('filterStatusDisplay', 'filterStatusOptions', 'filterStatusHidden', renderPcList);
     setupFixedSelect('filterGenderDisplay', 'filterGenderOptions', 'filterGenderHidden', renderPcList);
 
-    const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男', 'その他'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
-    const selectAge = setupDynamicSelect('trpg_custom_ages', ['10代', '20代', '30代', '不明'], 'pcAgeDisplay', 'pcAgeHidden', 'pcAgeOptions', '年齢');
+    // ★ 登録の性別初期値を「女」「男」だけに変更
+    const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
     const selectJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'pcJobDisplay', 'pcJobHidden', 'pcJobOptions', '職業');
 
@@ -288,7 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    ['filterTags', 'filterScenario', 'filterName', 'filterHO'].forEach(id => {
+    // ★ 年齢のフィルター入力を監視に追加
+    ['filterTags', 'filterScenario', 'filterName', 'filterHO', 'filterAge'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('input', renderPcList);
     });
@@ -298,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filterScenario').value = '';
         document.getElementById('filterHO').value = '';
         document.getElementById('filterTags').value = '';
+        document.getElementById('filterAge').value = ''; // ★ 年齢リセット
 
         document.getElementById('filterGenderHidden').value = 'すべて';
         document.getElementById('filterGenderDisplay').innerText = '性別: すべて';
@@ -323,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // ★ リスト描画処理（確実に描画されるように安全に修正！）
+    // ★ リスト描画処理
     // ==========================================
     function renderPcList() {
         if(!pcListContainer) return;
@@ -334,6 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const fScenario = document.getElementById('filterScenario').value.trim().toLowerCase();
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
         const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
+        const fAge = document.getElementById('filterAge').value.trim(); // ★ 年齢取得
+
         let hitCount = 0;
 
         if (pcData.length === 0) {
@@ -346,6 +374,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fGender !== 'すべて' && pc.gender !== fGender) return;
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
+
+            // ★ 年齢の絞り込み処理
+            if (fAge !== '') {
+                const pcAgeStr = (pc.age || '').toString().toLowerCase();
+                // 「20代」等で検索した場合は部分一致、「24」なら「24」もしくは「24歳」を含むかで判定
+                if (!pcAgeStr.includes(fAge.toLowerCase())) {
+                    // もし "24" で検索されていて、データが "24歳" などの場合も引っ掛ける
+                    const cleanAge = pcAgeStr.replace(/[^0-9]/g, ''); // データの数字だけ抽出
+                    const searchAge = fAge.replace(/[^0-9]/g, '');     // 検索の数字だけ抽出
+                    if (cleanAge !== searchAge || searchAge === '') {
+                        return; // 弾く
+                    }
+                }
+            }
 
             const latestHistory = (pc.history && pc.history.length > 0) ? pc.history[pc.history.length - 1] : { scenario: '履歴なし', status: '不明', ho: '' };
             let latestStatus = latestHistory.status || '生還';
@@ -367,14 +409,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'list-item';
 
-            // 安全な文字列生成（undefined回避）
             const safeImage = pc.image ? `background-image: url(${pc.image});` : `display:flex; justify-content:center; align-items:center; color:#aaa; font-size:30px;`;
             const safeName = pc.name || '名無し';
             const safeSystem = pc.system || '';
             const safeScenario = latestHistory.scenario || '履歴なし';
             const historyCount = pc.history ? pc.history.length : 0;
 
-            // HTMLの組み立て
             item.innerHTML = `
                 <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10;">
                     <button class="corner-btn detail" onclick="openDetail('${pc.id}')" style="background: #e8f5e9; color: #2e7d32; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">詳細</button>
@@ -464,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const name = document.getElementById('pcName').value.trim();
         const gender = document.getElementById('pcGenderHidden').value;
-        const age = document.getElementById('pcAgeHidden').value;
+        const age = document.getElementById('pcAgeInput').value.trim(); // ★ 直打ちから取得するように変更
         const race = document.getElementById('pcRaceHidden').value;
         const job = document.getElementById('pcJobHidden').value;
         const tags = document.getElementById('pcTags').value.trim();
@@ -505,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         db.collection("users").doc(currentUser.uid).collection("characters").add(newPc).then(() => {
             document.getElementById('pcName').value = '';
+            document.getElementById('pcAgeInput').value = ''; // ★ 年齢クリア
             document.getElementById('pcTags').value = '';
             document.getElementById('pcUrl').value = '';
             document.getElementById('pcIachara').value = '';
@@ -513,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const histDate = document.getElementById('histDate');
             histDate.value = ''; histDate.type = 'text';
 
-            selectGender.reset(); selectAge.reset(); selectRace.reset(); selectJob.reset();
+            selectGender.reset(); selectRace.reset(); selectJob.reset();
             document.getElementById('btnClearImage').click();
         });
     });
