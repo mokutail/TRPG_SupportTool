@@ -17,11 +17,12 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
-let pc = {};
+let pc = {}; // Firebaseから取得したデータを入れる箱
 let currentImageBase64 = null;
 let historyList = [];
 
 document.addEventListener('DOMContentLoaded', () => {
+    // どのPCを編集するか、IDだけはlocalStorageから受け取る
     const targetId = localStorage.getItem('trpg_edit_pc_id');
 
     if (!targetId) {
@@ -30,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // ==========================================
+    // ★ ログインチェックと金庫からのデータ読み込み
+    // ==========================================
     auth.onAuthStateChanged((user) => {
         if (user) {
             currentUser = user;
@@ -40,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 編集画面は、編集中に裏でデータが変わると入力中の文字が消えてしまうので、
+    // 「画面を開いた時に1回だけ」金庫からデータを持ってきます！（getを使います）
     function loadPcDataFromFirebase() {
         db.collection("users").doc(currentUser.uid).collection("characters").doc(targetId)
           .get().then((doc) => {
@@ -47,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   pc = { id: doc.id, ...doc.data() };
                   currentImageBase64 = pc.image || null;
 
+                  // 履歴データの準備（日付順に並び替え）
                   historyList = [...(pc.history || [])];
                   historyList.sort((a, b) => {
                       const dateA = new Date(a.date).getTime();
@@ -60,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       return dateA - dateB;
                   });
 
+                  // データの準備ができたら画面を描画する！
                   initFormUI();
               } else {
                   alert("データが見つかりません（削除された可能性があります）");
@@ -71,7 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
           });
     }
 
+    // ==========================================
+    // ★ UIの準備と描画（データ取得後に呼ばれます）
+    // ==========================================
     function initFormUI() {
+        // --- 汎用ドロップダウン設定関数 ---
         function setupDynamicSelect(storageKey, defaultList, displayId, hiddenId, optionsId, placeholderText) {
             let currentList = JSON.parse(localStorage.getItem(storageKey)) || defaultList;
             const display = document.getElementById(displayId);
@@ -160,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        // ★ 性別の初期値を「女」「男」に修正
+        // ★ 性別の初期値から「その他」を削除
         const editGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'editPcGenderDisplay', 'editPcGenderHidden', 'editPcGenderOptions', '性別');
         const editRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'editPcRaceDisplay', 'editPcRaceHidden', 'editPcRaceOptions', '種族');
         const editJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'editPcJobDisplay', 'editPcJobHidden', 'editPcJobOptions', '職業');
@@ -170,11 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 値のセット ---
         document.getElementById('editPcName').value = pc.name || '';
         document.getElementById('editPcKana').value = pc.kana || ''; // ★ 読み方セット
-        document.getElementById('editPcAgeInput').value = pc.age || ''; // ★ 年齢直打ちセット
+        document.getElementById('editPcAgeInput').value = pc.age || ''; // ★ 年齢（直打ち）セット
         document.getElementById('editPcHeightInput').value = pc.height || ''; // ★ 身長セット
         document.getElementById('editPcBirthdayInput').value = pc.birthday || ''; // ★ 誕生日セット
+
         document.getElementById('editPcTags').value = pc.tags || '';
         document.getElementById('editPcUrl').value = pc.url || '';
+
         editGender.setValue(pc.gender);
         editRace.setValue(pc.race);
         editJob.setValue(pc.job);
@@ -286,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateHistoryArrayFromDOM();
 
+        // 技能値（いあきゃら）データのパース
         const iacharaText = document.getElementById('editPcIachara').value.trim();
         if (iacharaText) {
             try {
@@ -316,11 +331,14 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.image = currentImageBase64;
         pc.updatedAt = Date.now();
 
+        // リスト表示用に裏側では「降順(最新が一番上)」に逆転させて保存
         pc.history = historyList.slice().reverse();
 
+        // 金庫へ上書き保存！
         db.collection("users").doc(currentUser.uid).collection("characters").doc(pc.id)
           .set(pc, { merge: true })
           .then(() => {
+              // 保存が成功したら詳細画面に戻る
               window.location.href = 'detail.html';
           })
           .catch(err => {
