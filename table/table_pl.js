@@ -300,9 +300,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ★ 職業のプルダウン初期化を削除しました
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
-    const selectJob = setupDynamicSelect('trpg_custom_jobs', ['学生', '警察官', '医者', '探偵', '不明'], 'pcJobDisplay', 'pcJobHidden', 'pcJobOptions', '職業');
 
     window.addEventListener('click', () => {
         document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
@@ -340,7 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    ['filterTags', 'filterScenario', 'filterName', 'filterHO', 'filterAge'].forEach(id => {
+    // ★ フィルターのイベントに filterJob を追加
+    ['filterTags', 'filterScenario', 'filterName', 'filterHO', 'filterAge', 'filterJob'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('input', renderPcList);
     });
@@ -351,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filterHO').value = '';
         document.getElementById('filterTags').value = '';
         if(document.getElementById('filterAge')) document.getElementById('filterAge').value = '';
+        if(document.getElementById('filterJob')) document.getElementById('filterJob').value = ''; // ★ リセットに追加
 
         document.getElementById('filterGender').value = 'すべて';
         document.getElementById('filterStatus').value = 'すべて';
@@ -389,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
         const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
         const fAge = document.getElementById('filterAge') ? document.getElementById('filterAge').value.trim() : '';
+        const fJob = document.getElementById('filterJob') ? document.getElementById('filterJob').value.trim().toLowerCase() : ''; // ★ 職業検索の値を取得
 
         const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'default';
         const sortOrder = document.getElementById('sortOrderBtn') ? document.getElementById('sortOrderBtn').getAttribute('data-order') : 'desc';
@@ -406,6 +409,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fGender !== 'すべて' && pc.gender !== fGender) return;
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
+
+            // ★ 職業の部分一致検索
+            if (fJob !== '' && (!pc.job || !pc.job.toLowerCase().includes(fJob))) return;
 
             if (fAge !== '') {
                 const pcAgeStr = (pc.age || '').toString().toLowerCase();
@@ -509,7 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeScenario = latestHistory.scenario || '履歴なし';
             const historyCount = pc.history ? pc.history.length : 0;
 
-            // ★ 画像サイズを100px×100pxに拡大し、システム名をボタン群の左に移動！
             item.innerHTML = `
                 <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 6px; z-index: 10;">
                     <span style="font-size:11px; color:#999; font-weight:bold; text-align:center; margin-right: 4px;">${safeSystem}</span>
@@ -602,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const age = ageEl ? ageEl.value.trim() : '';
         const birthday = document.getElementById('pcBirthdayInput') ? document.getElementById('pcBirthdayInput').value.trim() : '';
         const race = document.getElementById('pcRaceHidden').value;
-        const job = document.getElementById('pcJobHidden').value;
+        const job = document.getElementById('pcJobInput') ? document.getElementById('pcJobInput').value.trim() : ''; // ★ 職業入力値を取得
         const tags = document.getElementById('pcTags').value.trim();
         const url = document.getElementById('pcUrl').value.trim();
         const iacharaText = document.getElementById('pcIachara').value.trim();
@@ -645,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(document.getElementById('pcAgeInput')) document.getElementById('pcAgeInput').value = '';
             if(document.getElementById('pcHeightInput')) document.getElementById('pcHeightInput').value = '';
             if(document.getElementById('pcBirthdayInput')) document.getElementById('pcBirthdayInput').value = '';
+            if(document.getElementById('pcJobInput')) document.getElementById('pcJobInput').value = ''; // ★ 職業をリセット
             document.getElementById('pcTags').value = '';
             document.getElementById('pcUrl').value = '';
             document.getElementById('pcIachara').value = '';
@@ -653,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const histDate = document.getElementById('histDate');
             histDate.value = ''; histDate.type = 'text';
 
-            selectGender.reset(); selectRace.reset(); selectJob.reset();
+            selectGender.reset(); selectRace.reset();
             document.getElementById('btnClearImage').click();
         });
     });

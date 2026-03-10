@@ -73,8 +73,8 @@
         </div>
         <div class="filter-box" id="filterBox">
             <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="filterName" placeholder="PC名で検索" class="sc-band-input" style="flex:1;">
-                <input type="text" id="filterScenario" placeholder="シナリオ名で検索" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterName" placeholder="PC名" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterScenario" placeholder="シナリオ名" class="sc-band-input" style="flex:1;">
             </div>
 
             <div style="display:flex; gap:10px; margin-bottom:10px;">
@@ -90,12 +90,14 @@
                 </select>
             </div>
 
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="text" id="filterAge" placeholder="年齢で検索 (例: 20代, 24)" class="sc-band-input" style="flex:1;">
-                <input type="text" id="filterTags" placeholder="タグで検索" class="sc-band-input" style="flex:1;">
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input type="text" id="filterAge" placeholder="年齢 (例:20代,24)" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterTags" placeholder="タグ" class="sc-band-input" style="flex:1;">
             </div>
-            <div style="margin-bottom:15px;">
-                <input type="text" id="filterHO" placeholder="HO名で検索" class="sc-band-input" style="width:100%;">
+
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="filterHO" placeholder="HO名(例:1)" class="sc-band-input" style="flex:1;">
+                <input type="text" id="filterJob" placeholder="職業" class="sc-band-input" style="flex:1;">
             </div>
 
             <button id="btnResetFilter" style="width:100%; padding:12px; border-radius:12px; border:2px solid #eee; background:#fff; font-weight:bold; color:#76ADAF; cursor:pointer;">🔄 絞り込みをリセット</button>
@@ -142,11 +144,7 @@
             </div>
             <input type="hidden" id="pcRaceHidden" value="">
 
-            <div class="custom-select-wrapper" id="pcJobWrapper">
-                <div class="select-display" id="pcJobDisplay" style="padding: 14px 10px; font-size: 14px; text-align: center; justify-content: center;">職業</div>
-                <div class="select-options" id="pcJobOptions"></div>
-            </div>
-            <input type="hidden" id="pcJobHidden" value="">
+            <input type="text" id="pcJobInput" placeholder="職業 (例:探偵)" class="sc-band-input" style="padding: 14px 10px; font-size: 14px; text-align: center;">
         </div>
 
         <div style="margin-bottom:12px;">
