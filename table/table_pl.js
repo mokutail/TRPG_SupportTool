@@ -28,9 +28,6 @@ const systems = ["CoC 6th", "CoC 7th", "エモクロア"];
 document.addEventListener('DOMContentLoaded', () => {
     const pcListContainer = document.getElementById('pcListContainer');
 
-    // ==========================================
-    // ★ ログインチェックと権限判定（期間でのみ制限！機能制限なし！）
-    // ==========================================
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             try {
@@ -41,16 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const usedPass = userData.usedPassword || "";
                     const verifiedAt = userData.verifiedAt ? userData.verifiedAt.toDate() : new Date();
                     const now = new Date();
-                    const limitTime = 30 * 24 * 60 * 60 * 1000; // 30日間
+                    const limitTime = 30 * 24 * 60 * 60 * 1000;
 
-                    // 👑 管理者 または 💎 プロ版 は無期限で通す！
                     if (usedPass === "admin2003" || usedPass.includes("admin") || usedPass.includes("pro") || usedPass.includes("tail_pro")) {
                         currentUser = user;
                         startRealtimeSync();
                         return;
                     }
 
-                    // ⏳ それ以外（お試し版）は、30日以内なら通す！
                     if (now - verifiedAt < limitTime) {
                         currentUser = user;
                         startRealtimeSync();
@@ -62,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // 合言葉がない人はトップへ
                 alert("❌ この機能を利用するには合言葉の認証が必要です。");
                 window.location.href = "../index.html";
             } catch (error) {
@@ -82,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
               snapshot.forEach((doc) => {
                   pcData.push({ id: doc.id, ...doc.data() });
               });
-              updateGenderFilterOptions(); // データ同期時に性別フィルターも更新
+              updateGenderFilterOptions();
               renderPcList();
           });
     }
@@ -246,16 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // ★ 純正の<select>タグ用にフィルター選択肢を生成する関数
     function updateGenderFilterOptions() {
         const filter = document.getElementById('filterGender');
         if (!filter) return;
         const currentVal = filter.value;
 
-        // ① データから性別抽出
         const dataGenders = pcData.map(pc => pc.gender).filter(g => g && g !== '');
 
-        // ② カスタム追加された性別抽出
         let customGenders = [];
         try {
             const stored = localStorage.getItem('trpg_custom_genders');
@@ -265,10 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {}
 
-        const defaultGenders = ['女', '男']; // ★ 「その他」は削除
+        const defaultGenders = ['女', '男'];
         const genders = [...new Set([...defaultGenders, ...customGenders, ...dataGenders])];
 
-        // selectタグの中身を再構築
         filter.innerHTML = '<option value="すべて">性別: すべて</option>';
         genders.forEach(g => {
             const opt = document.createElement('option');
@@ -277,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
             filter.appendChild(opt);
         });
 
-        // 状態を復元
         if (genders.includes(currentVal)) {
             filter.value = currentVal;
         } else {
@@ -288,11 +277,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
     setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
 
-    // ★ 検索フィルター用の変更検知（純正selectタグなので change イベントでリスト更新）
     const fGen = document.getElementById('filterGender');
-    if (fGen) fGen.addEventListener('change', renderPcList);
+    if(fGen) fGen.addEventListener('change', renderPcList);
     const fStat = document.getElementById('filterStatus');
-    if (fStat) fStat.addEventListener('change', renderPcList);
+    if(fStat) fStat.addEventListener('change', renderPcList);
+    const sSel = document.getElementById('sortSelect');
+    if(sSel) sSel.addEventListener('change', renderPcList); // ★ 並べ替えイベント
 
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
@@ -302,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
     });
 
-    // --- UI制御・リスト描画など ---
     function updateFormTitle() {
         const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
         document.getElementById('formTitleLabel').innerHTML = `👤 新規探索者の登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
@@ -345,11 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filterScenario').value = '';
         document.getElementById('filterHO').value = '';
         document.getElementById('filterTags').value = '';
-        const ageInput = document.getElementById('filterAge');
-        if(ageInput) ageInput.value = '';
+        if(document.getElementById('filterAge')) document.getElementById('filterAge').value = '';
 
         document.getElementById('filterGender').value = 'すべて';
         document.getElementById('filterStatus').value = 'すべて';
+        if(document.getElementById('sortSelect')) document.getElementById('sortSelect').value = 'default';
 
         renderPcList();
     });
@@ -372,28 +361,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!pcListContainer) return;
         pcListContainer.innerHTML = '';
 
-        // フィルターの値を取得（純正の select タグから直接取得）
         const fGender = document.getElementById('filterGender').value;
         const fStatus = document.getElementById('filterStatus').value;
-
         const fTags = document.getElementById('filterTags').value.trim().toLowerCase();
         const fScenario = document.getElementById('filterScenario').value.trim().toLowerCase();
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
         const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
-
-        const ageEl = document.getElementById('filterAge');
-        const fAge = ageEl ? ageEl.value.trim() : '';
-
-        let hitCount = 0;
+        const fAge = document.getElementById('filterAge') ? document.getElementById('filterAge').value.trim() : '';
+        const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'default';
 
         if (pcData.length === 0) {
             pcListContainer.innerHTML = '<div class="empty-message-box">登録された探索者はいません</div>';
             document.getElementById('pcHitCount').innerText = "0"; return;
         }
 
+        // ★ まず条件に合うものを配列に集める（ソートするため）
+        let filteredPcs = [];
+
         pcData.forEach((pc) => {
             if (currentSystemFilter !== "すべて" && pc.system !== currentSystemFilter) return;
-            if (fGender !== 'すべて' && pc.gender !== fGender) return;
+
+            let filterGenderVal = fGender;
+            if (filterGenderVal !== 'すべて' && filterGenderVal.startsWith('性別: ')) {
+                filterGenderVal = filterGenderVal.replace('性別: ', '').trim();
+            }
+            if (filterGenderVal !== 'すべて' && pc.gender !== filterGenderVal) return;
+
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
 
@@ -412,10 +405,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let latestStatus = latestHistory.status || '生還';
             if (latestStatus === '生存') latestStatus = '生還';
 
-            if (fStatus !== 'すべて') {
-                if (fStatus === '生還' && latestStatus !== '生還' && latestStatus !== '生存') return;
-                if (fStatus !== '生還' && latestStatus !== fStatus) return;
+            let filterStatusVal = fStatus;
+            if (filterStatusVal !== 'すべて' && filterStatusVal.startsWith('状態: ')) {
+                filterStatusVal = filterStatusVal.replace('状態: ', '').trim();
             }
+            if (filterStatusVal !== 'すべて') {
+                if (filterStatusVal === '生還' && latestStatus !== '生還' && latestStatus !== '生存') return;
+                if (filterStatusVal !== '生還' && latestStatus !== filterStatusVal) return;
+            }
+
             if (fHO !== '' && (!latestHistory.ho || !latestHistory.ho.toLowerCase().includes(fHO))) return;
 
             if (fScenario !== '') {
@@ -424,7 +422,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!matchScen) return;
             }
 
+            filteredPcs.push({
+                pc: pc,
+                latestStatus: latestStatus,
+                latestHistory: latestHistory
+            });
+        });
+
+        // ★ 並べ替え（ソート）処理
+        filteredPcs.sort((a, b) => {
+            if (sortVal === 'age') {
+                const numA = parseInt((a.pc.age || '').replace(/[^0-9]/g, '')) || 0;
+                const numB = parseInt((b.pc.age || '').replace(/[^0-9]/g, '')) || 0;
+                return numA - numB; // 年齢順
+            } else if (sortVal === 'height') {
+                const numA = parseFloat((a.pc.height || '').replace(/[^0-9.]/g, '')) || 0;
+                const numB = parseFloat((b.pc.height || '').replace(/[^0-9.]/g, '')) || 0;
+                return numA - numB; // 身長順
+            } else if (sortVal === 'birthday') {
+                // 誕生日 (例: 4/1) を 401 のような数字にして比較
+                const parseDate = (str) => {
+                    if (!str) return 9999;
+                    const match = str.match(/(\d+)[^\d]+(\d+)/);
+                    if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
+                    return 9999;
+                };
+                return parseDate(a.pc.birthday) - parseDate(b.pc.birthday);
+            } else if (sortVal === 'kana') {
+                const strA = a.pc.kana || a.pc.name || '';
+                const strB = b.pc.kana || b.pc.name || '';
+                return strA.localeCompare(strB, 'ja'); // あいうえお順
+            }
+            return 0; // デフォルト (Firebaseから取得した新着順を維持)
+        });
+
+        if (filteredPcs.length === 0) {
+            pcListContainer.innerHTML = '<div class="empty-message-box">条件に一致する探索者はいません</div>';
+            document.getElementById('pcHitCount').innerText = "0"; return;
+        }
+
+        let hitCount = 0;
+
+        filteredPcs.forEach((itemObj) => {
             hitCount++;
+            const pc = itemObj.pc;
+            const latestStatus = itemObj.latestStatus;
+            const latestHistory = itemObj.latestHistory;
+
             const item = document.createElement('div');
             item.className = 'list-item';
 
@@ -461,12 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('pcHitCount').innerText = hitCount;
     }
 
-    // --- 継続シナリオの追加 ---
     window.openContinueModal = (id) => {
-        // ラグ対策
-        if (!currentUser && auth.currentUser) currentUser = auth.currentUser;
-        if (!currentUser) return alert("ログインしてください\n※反映が遅れている場合は数秒待ってからお試しください。");
-
         targetPcIdForContinue = id;
         const pc = pcData.find(p => p.id === id);
         if(!pc) return;
@@ -509,7 +548,6 @@ document.addEventListener('DOMContentLoaded', () => {
           });
     };
 
-    // --- 削除処理 ---
     window.deletePc = (id) => {
         if (confirm('この探索者のデータを完全に削除しますか？')) {
             db.collection("users").doc(currentUser.uid).collection("characters").doc(id).delete();
@@ -521,16 +559,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = './detail.html';
     };
 
-    // --- 新規登録 ---
     document.getElementById('btnAddPc').addEventListener('click', () => {
-        // ラグ対策
-        if (!currentUser && auth.currentUser) currentUser = auth.currentUser;
-        if (!currentUser) return alert("ログインしてください\n※反映が遅れている場合は、数秒待ってから再度お試しください。");
+        if (!currentUser) return alert("ログインしてください");
 
         const name = document.getElementById('pcName').value.trim();
+        const kana = document.getElementById('pcKana') ? document.getElementById('pcKana').value.trim() : ''; // ★ 読み方取得
         const gender = document.getElementById('pcGenderHidden').value;
+        const height = document.getElementById('pcHeightInput') ? document.getElementById('pcHeightInput').value.trim() : ''; // ★ 身長取得
         const ageEl = document.getElementById('pcAgeInput');
         const age = ageEl ? ageEl.value.trim() : '';
+        const birthday = document.getElementById('pcBirthdayInput') ? document.getElementById('pcBirthdayInput').value.trim() : ''; // ★ 誕生日取得
         const race = document.getElementById('pcRaceHidden').value;
         const job = document.getElementById('pcJobHidden').value;
         const tags = document.getElementById('pcTags').value.trim();
@@ -562,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const now = Date.now();
         const newPc = {
-            system, name, gender, age, race, job, tags, url, image: currentImageBase64,
+            system, name, kana, gender, height, age, birthday, race, job, tags, url, image: currentImageBase64, // ★ 保存項目に追加
             stats: parsedStats, skills: parsedSkills,
             history: [{ scenario: hScen, ho: hHO, date: hDate, status: hStatus }],
             createdAt: now,
@@ -571,7 +609,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         db.collection("users").doc(currentUser.uid).collection("characters").add(newPc).then(() => {
             document.getElementById('pcName').value = '';
+            if(document.getElementById('pcKana')) document.getElementById('pcKana').value = ''; // ★ リセット
             if(document.getElementById('pcAgeInput')) document.getElementById('pcAgeInput').value = '';
+            if(document.getElementById('pcHeightInput')) document.getElementById('pcHeightInput').value = ''; // ★ リセット
+            if(document.getElementById('pcBirthdayInput')) document.getElementById('pcBirthdayInput').value = ''; // ★ リセット
             document.getElementById('pcTags').value = '';
             document.getElementById('pcUrl').value = '';
             document.getElementById('pcIachara').value = '';
