@@ -10,7 +10,6 @@ const firebaseConfig = {
   appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
 };
 
-
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -197,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const fStatus = document.getElementById('filterStatusHidden').value;
         let hitCount = 0;
 
-        // ★ ここが共通の可愛いデザインに書き換えた部分です！
         if (kpData.length === 0) {
             kpListContainer.innerHTML = '<div class="empty-message-box">登録されたKP卓はありません</div>';
             hitCountDisplay.innerText = "0"; return;
@@ -239,26 +237,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const linksContainer = linksHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">${linksHtml}</div>` : '';
 
-            // ★ 修正箇所：レイアウトのHTMLの組み立て方を「探索者管理（table_pl）」と同じに直しました！
+            // ★ 修正箇所：タイトルのマージンを調整し、ボタンの下（margin-top: 38px）に配置して被りを防止！
             item.innerHTML = `
-                <div class="item-actions-corner">
-                    <button class="corner-btn continue" onclick="createNextZin('${kp.id}')">次陣を作成</button>
-                    <button class="corner-btn" style="background:#fff3e0; color:#e65100;" onclick="editKp('${kp.id}')">修正</button>
-                    <button class="corner-btn delete" onclick="deleteKp('${kp.id}')">削除</button>
+                <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10;">
+                    <button class="corner-btn continue" onclick="createNextZin('${kp.id}')" style="background: #e3f2fd; color: #0277bd; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">次陣を作成</button>
+                    <button class="corner-btn" style="background:#fff3e0; color:#e65100; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;" onclick="editKp('${kp.id}')">修正</button>
+                    <button class="corner-btn delete" onclick="deleteKp('${kp.id}')" style="background: #ffebee; color: #d32f2f; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">削除</button>
                 </div>
-                <div class="pl-list-layout">
+                <div class="pl-list-layout" style="display: flex; gap: 15px; align-items: flex-start;">
                     <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0; gap:6px; width:80px;">
                         <div class="pl-list-image" style="${imgStyle}">${kp.image ? '' : '🎲'}</div>
                         <span class="status-badge ${statusClass}" style="margin:0; text-align:center;">${kp.status}</span>
                         <span style="font-size:10px; color:#999; font-weight:bold; text-align:center;">${kp.system}</span>
                     </div>
-                    <div class="pl-list-content">
-                        <div class="item-header" style="padding-right:0; margin-bottom:4px;">
-                            <div class="item-title" style="margin-top:0;">${kp.scenario}</div>
-                            <div class="item-subtitle" style="margin-bottom:4px;">第 ${kp.zin || 1} 陣</div>
-                        </div>
+
+                    <div class="pl-list-content" style="flex: 1; min-width: 0; margin-top: 38px;"> <div class="item-title" style="font-size: 18px; font-weight: bold; color: #333; line-height: 1.3; word-break: break-all; margin-top: 0; margin-bottom: 6px;">${kp.scenario}</div>
+                        <div class="item-subtitle" style="font-size: 13px; font-weight: bold; color: #666; margin-bottom: 8px;">第 ${kp.zin || 1} 陣</div>
                         ${tagsHtml}
-                        <div class="item-details">
+                        <div class="item-details" style="font-size: 12px; color: #777; line-height: 1.6;">
                             卓開始日: ${kp.date || '未定'} <br>
                             PL: ${kp.players || '未定'} <br>
                         </div>
