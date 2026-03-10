@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function startRealtimeSync() {
-        // ★ 修正： "pcs" ではなく "characters" からデータを取得！
         db.collection("users").doc(currentUser.uid).collection("characters").doc(targetId)
           .onSnapshot((doc) => {
               if (doc.exists) {
@@ -240,10 +239,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // ★ 新しく追加した「読み方」「身長」「誕生日」も表示されるように整理しました
         const safeKana = pc.kana ? `<div style="font-size:12px; color:#888; font-weight:bold; margin-bottom:2px;">${pc.kana}</div>` : '';
+
+        // ★ 自動「歳」付与
         const displayAge = pc.age ? (/^\d+$/.test(pc.age) ? pc.age + '歳' : pc.age) : '未設定';
 
+        // ★ 自動「cm」付与
+        const displayHeight = pc.height ? (/^\d+(\.\d+)?$/.test(pc.height) ? pc.height + 'cm' : pc.height) : '未設定';
+
+        // ★ 自動「月日」変換 (0405, 405, 1225 などを 4月5日, 12月25日 に)
+        let displayBirthday = pc.birthday || '未設定';
+        if (/^\d{3,4}$/.test(displayBirthday)) {
+            const numStr = displayBirthday;
+            if (numStr.length === 3) {
+                displayBirthday = `${numStr.substring(0, 1)}月${numStr.substring(1, 3)}日`;
+            } else if (numStr.length === 4) {
+                const m = parseInt(numStr.substring(0, 2), 10); // 04 を 4 にする
+                const d = parseInt(numStr.substring(2, 4), 10); // 05 を 5 にする
+                displayBirthday = `${m}月${d}日`;
+            }
+        }
+
+        // ★ 種族の下に職業が来るように改行
         detailView.innerHTML = `
             <div class="detail-header">
                 <div class="detail-img" style="${imgStyle}">${pc.image ? '' : '👤'}</div>
@@ -253,9 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h2 style="margin-top:0;">${pc.name || '名無し'}</h2>
 
                     <div style="font-size:13px; color:#555; font-weight:bold; line-height:1.6;">
-                        <div>性別: ${pc.gender || '未設定'} / 身長: ${pc.height || '未設定'}</div>
-                        <div>年齢: ${displayAge} / 誕生日: ${pc.birthday || '未設定'}</div>
-                        <div>種族: ${pc.race || '未設定'} / 職業: ${pc.job || '未設定'}</div>
+                        <div>性別: ${pc.gender || '未設定'} / 身長: ${displayHeight}</div>
+                        <div>年齢: ${displayAge} / 誕生日: ${displayBirthday}</div>
+                        <div>種族: ${pc.race || '未設定'}</div>
+                        <div>職業: ${pc.job || '未設定'}</div>
                     </div>
 
                     ${tagsHtml}
