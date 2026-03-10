@@ -263,7 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
         genders.forEach(g => {
             const opt = document.createElement('option');
             opt.value = g;
-            opt.innerText = `性別: ${g}`;
+            // ★ 「女」「男」のようにシンプルに表示する
+            opt.innerText = g;
             filter.appendChild(opt);
         });
 
@@ -281,8 +282,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if(fGen) fGen.addEventListener('change', renderPcList);
     const fStat = document.getElementById('filterStatus');
     if(fStat) fStat.addEventListener('change', renderPcList);
+
     const sSel = document.getElementById('sortSelect');
     if(sSel) sSel.addEventListener('change', renderPcList);
+
+    // ★ 昇順・降順 切り替えボタンの処理
+    const sOrderBtn = document.getElementById('sortOrderBtn');
+    if (sOrderBtn) {
+        sOrderBtn.addEventListener('click', () => {
+            const currentOrder = sOrderBtn.getAttribute('data-order');
+            if (currentOrder === 'desc') {
+                sOrderBtn.setAttribute('data-order', 'asc');
+                sOrderBtn.innerText = '🔼 昇順';
+            } else {
+                sOrderBtn.setAttribute('data-order', 'desc');
+                sOrderBtn.innerText = '🔽 降順';
+            }
+            renderPcList(); // リストを再描画
+        });
+    }
 
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
@@ -338,7 +356,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('filterGender').value = 'すべて';
         document.getElementById('filterStatus').value = 'すべて';
+
         if(document.getElementById('sortSelect')) document.getElementById('sortSelect').value = 'default';
+        if(document.getElementById('sortOrderBtn')) {
+            document.getElementById('sortOrderBtn').setAttribute('data-order', 'desc');
+            document.getElementById('sortOrderBtn').innerText = '🔽 降順';
+        }
 
         renderPcList();
     });
@@ -368,7 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
         const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
         const fAge = document.getElementById('filterAge') ? document.getElementById('filterAge').value.trim() : '';
+
         const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'default';
+        const sortOrder = document.getElementById('sortOrderBtn') ? document.getElementById('sortOrderBtn').getAttribute('data-order') : 'desc';
 
         if (pcData.length === 0) {
             pcListContainer.innerHTML = '<div class="empty-message-box">登録された探索者はいません</div>';
@@ -380,35 +405,25 @@ document.addEventListener('DOMContentLoaded', () => {
         pcData.forEach((pc) => {
             if (currentSystemFilter !== "すべて" && pc.system !== currentSystemFilter) return;
 
-            let filterGenderVal = fGender;
-            if (filterGenderVal !== 'すべて' && filterGenderVal.startsWith('性別: ')) {
-                filterGenderVal = filterGenderVal.replace('性別: ', '').trim();
-            }
-            if (filterGenderVal !== 'すべて' && pc.gender !== filterGenderVal) return;
-
+            if (fGender !== 'すべて' && pc.gender !== fGender) return;
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
 
-            // ★ 「20代」での検索を賢く処理
             if (fAge !== '') {
                 const pcAgeStr = (pc.age || '').toString().toLowerCase();
 
                 if (fAge.includes('代')) {
-                    // 「20代」等で検索された場合、年代を抽出
                     const targetDecade = parseInt(fAge.replace(/[^0-9]/g, ''));
                     const pcAgeNum = parseInt(pcAgeStr.replace(/[^0-9]/g, ''));
-
-                    // 「20代」なら 20〜29 をヒットさせる
                     if (isNaN(pcAgeNum) || pcAgeNum < targetDecade || pcAgeNum >= targetDecade + 10) {
-                        return; // 弾く
+                        return;
                     }
                 } else {
-                    // 「24」などピンポイント検索の場合
                     if (!pcAgeStr.includes(fAge.toLowerCase())) {
                         const cleanAge = pcAgeStr.replace(/[^0-9]/g, '');
                         const searchAge = fAge.replace(/[^0-9]/g, '');
                         if (cleanAge !== searchAge || searchAge === '') {
-                            return; // 弾く
+                            return;
                         }
                     }
                 }
@@ -423,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 filterStatusVal = filterStatusVal.replace('状態: ', '').trim();
             }
             if (filterStatusVal !== 'すべて') {
-                if (filterStatusVal === '生生還' && latestStatus !== '生還' && latestStatus !== '生存') return;
+                if (filterStatusVal === '生還' && latestStatus !== '生還' && latestStatus !== '生存') return;
                 if (filterStatusVal !== '生還' && latestStatus !== filterStatusVal) return;
             }
 
@@ -442,15 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // ★ 並べ替え処理（昇順・降順対応）
         filteredPcs.sort((a, b) => {
+            let result = 0;
+
             if (sortVal === 'age') {
                 const numA = parseInt((a.pc.age || '').replace(/[^0-9]/g, '')) || 0;
                 const numB = parseInt((b.pc.age || '').replace(/[^0-9]/g, '')) || 0;
-                return numA - numB;
+                result = numA - numB;
             } else if (sortVal === 'height') {
                 const numA = parseFloat((a.pc.height || '').replace(/[^0-9.]/g, '')) || 0;
                 const numB = parseFloat((b.pc.height || '').replace(/[^0-9.]/g, '')) || 0;
-                return numA - numB;
+                result = numA - numB;
             } else if (sortVal === 'birthday') {
                 const parseDate = (str) => {
                     if (!str) return 9999;
@@ -458,13 +476,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
                     return 9999;
                 };
-                return parseDate(a.pc.birthday) - parseDate(b.pc.birthday);
+                result = parseDate(a.pc.birthday) - parseDate(b.pc.birthday);
             } else if (sortVal === 'kana') {
                 const strA = a.pc.kana || a.pc.name || '';
                 const strB = b.pc.kana || b.pc.name || '';
-                return strA.localeCompare(strB, 'ja');
+                result = strA.localeCompare(strB, 'ja');
+            } else {
+                // デフォルト（登録順）の場合は createdAt で判定
+                const timeA = a.pc.createdAt || 0;
+                const timeB = b.pc.createdAt || 0;
+                result = timeA - timeB;
             }
-            return 0;
+
+            // 降順(desc)なら結果を反転させる
+            return sortOrder === 'desc' ? -result : result;
         });
 
         if (filteredPcs.length === 0) {

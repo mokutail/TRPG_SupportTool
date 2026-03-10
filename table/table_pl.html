@@ -33,6 +33,29 @@
             border-color: #76ADAF;
             background-color: #f0f7f7;
         }
+        /* ★ 昇順・降順 切り替えボタンのスタイル */
+        .sort-order-btn {
+            background: #f0f7f7;
+            color: #76ADAF;
+            border: 2px solid #76ADAF;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px rgba(118,173,175,0.1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .sort-order-btn:active {
+            transform: scale(0.95);
+            background: #76ADAF;
+            color: #fff;
+        }
     </style>
 </head>
 <body class="body">
@@ -164,13 +187,16 @@
     <div class="input-group">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 10px;">
             <label class="group-label" style="margin: 0;">📊 探索者リスト</label>
-            <select id="sortSelect" class="cute-select" style="width: 140px; padding: 8px 12px; font-size: 12px; border-radius: 8px;">
-                <option value="default">登録順</option>
-                <option value="age">年齢順</option>
-                <option value="height">身長順</option>
-                <option value="birthday">誕生日順</option>
-                <option value="kana">あいうえお順</option>
-            </select>
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <select id="sortSelect" class="cute-select" style="width: 120px; padding: 8px 12px; font-size: 12px; border-radius: 8px;">
+                    <option value="default">登録順</option>
+                    <option value="age">年齢順</option>
+                    <option value="height">身長順</option>
+                    <option value="birthday">誕生日順</option>
+                    <option value="kana">あいうえお順</option>
+                </select>
+                <button id="sortOrderBtn" class="sort-order-btn" data-order="desc">🔽 降順</button>
+            </div>
         </div>
         <div id="pcListContainer"></div>
     </div>
