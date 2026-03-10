@@ -8,6 +8,16 @@ const firebaseConfig = {
   storageBucket: "trpg-supporttool.firebasestorage.app",
   messagingSenderId: "163289928352",
   appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+};// ==========================================
+// ★ Firebaseの初期設定
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+  authDomain: "trpg-supporttool.firebaseapp.com",
+  projectId: "trpg-supporttool",
+  storageBucket: "trpg-supporttool.firebasestorage.app",
+  messagingSenderId: "163289928352",
+  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
 };
 
 if (!firebase.apps.length) {

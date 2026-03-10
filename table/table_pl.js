@@ -29,19 +29,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const pcListContainer = document.getElementById('pcListContainer');
 
     // ==========================================
-    // ★ ログインチェックとリアルタイム同期
+    // ★ ログインチェックと権限判定（期間でのみ制限！機能制限なし！）
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             try {
                 const userDoc = await db.collection("users").doc(user.uid).get();
-                const usedPass = userDoc.exists ? (userDoc.data().usedPassword || "") : "";
-                if (usedPass === "admin2003" || usedPass.includes("admin")) {
-                    currentUser = user;
-                    startRealtimeSync();
-                    return;
+                const userData = userDoc.exists ? userDoc.data() : {};
+
+                if (userData.hasValidOrder === true) {
+                    const usedPass = userData.usedPassword || "";
+                    const verifiedAt = userData.verifiedAt ? userData.verifiedAt.toDate() : new Date();
+                    const now = new Date();
+                    const limitTime = 30 * 24 * 60 * 60 * 1000; // 30日間
+
+                    // 👑 管理者 または 💎 プロ版 は無期限で通す！
+                    if (usedPass === "admin2003" || usedPass.includes("admin") || usedPass.includes("pro") || usedPass.includes("tail_pro")) {
+                        currentUser = user;
+                        startRealtimeSync();
+                        return;
+                    }
+
+                    // ⏳ それ以外（お試し版）は、30日以内なら通す！
+                    if (now - verifiedAt < limitTime) {
+                        currentUser = user;
+                        startRealtimeSync();
+                        return;
+                    } else {
+                        alert("⌛ お試し期間(30日)が終了しました。プロ版の合言葉を入力してください。");
+                        window.location.href = "../index.html";
+                        return;
+                    }
                 }
-                alert("❌ この機能を利用する権限がありません。");
+
+                // 合言葉がない人はトップへ
+                alert("❌ この機能を利用するには合言葉の認証が必要です。");
                 window.location.href = "../index.html";
             } catch (error) {
                 console.error("権限チェックエラー:", error);
@@ -224,15 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // ★ 純正の<select>タグ用にフィルター選択肢を生成する関数
     function updateGenderFilterOptions() {
-        const filterOptions = document.getElementById('filterGenderOptions');
-        const filterHidden = document.getElementById('filterGenderHidden');
-        const filterDisplay = document.getElementById('filterGenderDisplay');
-        if (!filterOptions || !filterHidden || !filterDisplay) return;
+        const filter = document.getElementById('filterGender');
+        if (!filter) return;
+        const currentVal = filter.value;
 
-        const currentVal = filterHidden.value;
+        // ① データから性別抽出
         const dataGenders = pcData.map(pc => pc.gender).filter(g => g && g !== '');
 
+        // ② カスタム追加された性別抽出
         let customGenders = [];
         try {
             const stored = localStorage.getItem('trpg_custom_genders');
@@ -242,32 +265,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {}
 
-        const defaultGenders = ['女', '男'];
+        const defaultGenders = ['女', '男']; // ★ 「その他」は削除
         const genders = [...new Set([...defaultGenders, ...customGenders, ...dataGenders])];
 
-        filterOptions.innerHTML = '<div class="option-item" data-value="すべて">性別: すべて</div>';
+        // selectタグの中身を再構築
+        filter.innerHTML = '<option value="すべて">性別: すべて</option>';
         genders.forEach(g => {
-            const div = document.createElement('div');
-            div.className = 'option-item';
-            div.setAttribute('data-value', g);
-            div.innerText = g;
-            filterOptions.appendChild(div);
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.innerText = `性別: ${g}`;
+            filter.appendChild(opt);
         });
 
+        // 状態を復元
         if (genders.includes(currentVal)) {
-            filterHidden.value = currentVal;
-            filterDisplay.innerText = currentVal === 'すべて' ? '性別: すべて' : `性別: ${currentVal}`;
+            filter.value = currentVal;
         } else {
-            filterHidden.value = 'すべて';
-            filterDisplay.innerText = '性別: すべて';
-            renderPcList();
+            filter.value = 'すべて';
         }
     }
 
     setupFixedSelect('histStatusDisplay', 'histStatusOptions', 'histStatusHidden');
     setupFixedSelect('contStatusDisplay', 'contStatusOptions', 'contStatusHidden');
-    setupFixedSelect('filterStatusDisplay', 'filterStatusOptions', 'filterStatusHidden', renderPcList);
-    setupFixedSelect('filterGenderDisplay', 'filterGenderOptions', 'filterGenderHidden', renderPcList);
+
+    // ★ 検索フィルター用の変更検知（純正selectタグなので change イベントでリスト更新）
+    const fGen = document.getElementById('filterGender');
+    if (fGen) fGen.addEventListener('change', renderPcList);
+    const fStat = document.getElementById('filterStatus');
+    if (fStat) fStat.addEventListener('change', renderPcList);
 
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
@@ -323,11 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const ageInput = document.getElementById('filterAge');
         if(ageInput) ageInput.value = '';
 
-        document.getElementById('filterGenderHidden').value = 'すべて';
-        document.getElementById('filterGenderDisplay').innerText = '性別: すべて';
-
-        document.getElementById('filterStatusHidden').value = 'すべて';
-        document.getElementById('filterStatusDisplay').innerText = '状態: すべて';
+        document.getElementById('filterGender').value = 'すべて';
+        document.getElementById('filterStatus').value = 'すべて';
 
         renderPcList();
     });
@@ -349,8 +371,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPcList() {
         if(!pcListContainer) return;
         pcListContainer.innerHTML = '';
-        const fGender = document.getElementById('filterGenderHidden').value;
-        const fStatus = document.getElementById('filterStatusHidden').value;
+
+        // フィルターの値を取得（純正の select タグから直接取得）
+        const fGender = document.getElementById('filterGender').value;
+        const fStatus = document.getElementById('filterStatus').value;
+
         const fTags = document.getElementById('filterTags').value.trim().toLowerCase();
         const fScenario = document.getElementById('filterScenario').value.trim().toLowerCase();
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
@@ -409,8 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeScenario = latestHistory.scenario || '履歴なし';
             const historyCount = pc.history ? pc.history.length : 0;
 
-            // ★ ここにあった年齢・性別・職業の basicInfoText を削除して元のスッキリ状態に！
-
             item.innerHTML = `
                 <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10;">
                     <button class="corner-btn detail" onclick="openDetail('${pc.id}')" style="background: #e8f5e9; color: #2e7d32; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">詳細</button>
@@ -440,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 継続シナリオの追加 ---
     window.openContinueModal = (id) => {
-        // ★ 継続ボタンでも「ログインのラグ」を防止
+        // ラグ対策
         if (!currentUser && auth.currentUser) currentUser = auth.currentUser;
         if (!currentUser) return alert("ログインしてください\n※反映が遅れている場合は数秒待ってからお試しください。");
 
@@ -500,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 新規登録 ---
     document.getElementById('btnAddPc').addEventListener('click', () => {
-        // ★ ここがエラーの原因でした！ログイン反映のラグを強制的に突破します。
+        // ラグ対策
         if (!currentUser && auth.currentUser) currentUser = auth.currentUser;
         if (!currentUser) return alert("ログインしてください\n※反映が遅れている場合は、数秒待ってから再度お試しください。");
 

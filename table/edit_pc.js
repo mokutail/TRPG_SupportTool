@@ -244,8 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <input type="text" class="sc-band-input hist-scen" placeholder="シナリオ名" value="${h.scenario || ''}" style="margin-bottom:8px;">
                 <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <input type="text" class="sc-band-input hist-date" placeholder="通過日" value="${h.date || ''}" style="flex:1;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
                     <input type="text" class="sc-band-input hist-ho" placeholder="HO" value="${h.ho || ''}" style="flex:1;">
+                    <input type="text" class="sc-band-input hist-date" placeholder="通過完了日" value="${h.date || ''}" style="flex:1;" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
                 </div>
                 <select class="sc-band-select hist-status" style="padding:10px;">
                     <option value="生還" ${h.status === '生還' ? 'selected' : ''}>生還</option>
