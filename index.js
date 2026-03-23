@@ -2,12 +2,12 @@
 // ★ Firebaseの初期設定
 // ==========================================
 const firebaseConfig = {
-  apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
-  authDomain: "trpg-supporttool.firebaseapp.com",
-  projectId: "trpg-supporttool",
-  storageBucket: "trpg-supporttool.firebasestorage.app",
-  messagingSenderId: "163289928352",
-  appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
+    apiKey: "AIzaSyD67HN29lVqUoRAczK-FYFdqlkQq7PyfTU",
+    authDomain: "trpg-supporttool.firebaseapp.com",
+    projectId: "trpg-supporttool",
+    storageBucket: "trpg-supporttool.firebasestorage.app",
+    messagingSenderId: "163289928352",
+    appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
 };
 
 // Firebaseの起動
@@ -16,7 +16,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
-let currentLicense = "none"; // ユーザーの権限（admin, pro, trial）
+let currentLicense = "none"; // ユーザーの権限（admin, pro, trial, friend）
 
 document.addEventListener('DOMContentLoaded', () => {
     const authBtn = document.getElementById('authBtn');
@@ -44,19 +44,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     const usedPass = userData.usedPassword || "";
                     const verifiedAt = userData.verifiedAt ? userData.verifiedAt.toDate() : null;
 
-                    // 👑 1. 管理者 (admin2003) の判定：無期限
-                    if (usedPass === "admin2003" || usedPass.includes("admin")) {
+                    // ★ ここが抜けていました！データベースから「role」を取得する処理
+                    let role = "";
+                    try {
+                        const passDoc = await db.collection("valid_passwords").doc(usedPass).get();
+                        if (passDoc.exists) {
+                            role = passDoc.data().role || ""; // ここで "friend" などを取得！
+                        }
+                    } catch (err) {
+                        console.error("権限データの取得エラー:", err);
+                    }
+
+                    // 👑 1. 管理者の判定
+                    if (role === "admin") {
                         currentLicense = "admin";
-                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：管理者 (無期限)";
+                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：管理者";
                         document.getElementById('passwordModal').style.display = 'none';
                         startMenuSync();
                         return;
                     }
 
-                    // 💎 2. プロ版 (買い切り) の判定：無期限
-                    if (usedPass.includes("pro") || usedPass.includes("tail_pro")) {
-                        currentLicense = "pro";
-                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：プロ版 (無期限)";
+                    // 🤝 2. 身内ゲストの判定
+                    if (role === "friend") {
+                        currentLicense = "friend";
+                        if(licenseDisplay) licenseDisplay.innerText = "現在の状態：特別閲覧者";
                         document.getElementById('passwordModal').style.display = 'none';
                         startMenuSync();
                         return;
@@ -167,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const defaultMenu = [
         { id: 'recruit', label: '📢 募集画像シート作成', color: '#607d8b', href: 'recruit/recruit.html' },
         { id: 'warning', label: '⚠️ 地雷チェックシート作成', color: '#607d8b', href: 'warning/warning.html' },
+        { id: 'rulebook', label: '📖 CoCルールブック', color: '#d32f2f', href: 'rulebook/rulebook.html', requireAdmin: true },
         { id: 'scenario', label: '📚 自作シナリオ管理', color: '#607d8b', href: 'scenario/scenario.html' },
         { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
         { id: 'table_want', label: '💭 行きたいシナリオ一覧', color: '#607d8b', href: 'scenario_want/scenario_want.html' },
@@ -224,9 +236,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentMenu.forEach((item, index) => {
 
-            // ★ ツール制限を撤廃しました！全員が全てのボタンを見られます。
-
             if (!isEditMode && item.isHidden) return;
+            
+            // admin（管理者）か friend（特別閲覧者）以外には見せない
+            if (item.requireAdmin && currentLicense !== 'admin' && currentLicense !== 'friend') {
+                return; 
+            }
 
             const wrapper = document.createElement('div');
             wrapper.className = 'menu-item-wrapper';

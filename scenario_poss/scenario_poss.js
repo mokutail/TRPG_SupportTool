@@ -10,6 +10,7 @@ const firebaseConfig = {
   appId: "1:163289928352:web:a75c5bb1827b47d0eb2fc5"
 };
 
+// もし既に初期化されていなければ初期化する
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -17,51 +18,104 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
-let possData = []; // Firebaseから取得したデータをここに入れます
-let editingId = null;
+let scenarios = []; // 端末の引き出し（localStorage）ではなく、この空箱を使います！
+let editingIndex = null;
+
+// ★ システムのリスト定義（横スクロールタブ用）
+const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
+let currentSystemFilter = "すべて";
 
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
-    // ★ ログインチェックとリアルタイム同期
+    // ★ 2. ログインチェックと、リアルタイム同期の魔法！
     // ==========================================
     auth.onAuthStateChanged((user) => {
         if (user) {
             currentUser = user;
+            console.log("ログイン確認OK！ ID:", user.uid);
+            // ログインしていたら、金庫の監視（同期）をスタート！
             startRealtimeSync();
         } else {
+            // ログインしていなければトップページに強制送還！
             alert("データの同期にはログインが必要です。トップページに戻ります。");
             window.location.href = '../index.html';
         }
     });
 
+    // 🏆 これがFirebase最大の魔法「onSnapshot」です！
+    // 金庫の中身が変わった瞬間、自動的に画面が書き換わります！
     function startRealtimeSync() {
-        // "scenario_poss" という名前の引き出しを監視する
-        db.collection("users").doc(currentUser.uid).collection("scenario_poss")
-          .orderBy("createdAt", "desc")
+        db.collection("users").doc(currentUser.uid).collection("scenario_want")
+          .orderBy("createdAt", "desc") // 新しい順に並べる
           .onSnapshot((snapshot) => {
-              possData = [];
+              scenarios = []; // 一旦空っぽにする
               snapshot.forEach((doc) => {
-                  possData.push({ id: doc.id, ...doc.data() });
+                  // 金庫の中からデータを取り出してリストに入れる
+                  scenarios.push({ id: doc.id, ...doc.data() });
               });
-              renderList(); // データが変わるたびに自動で画面更新！
+              renderScenarios(); // データが届くたびに自動で画面を作る！
           });
     }
 
     // ==========================================
     // UI制御のコード
     // ==========================================
-    // ★ ここを直しました！ HTMLに合わせて 'scList' に変更！
-    const listContainer = document.getElementById('scList');
-    const hitCountDisplay = document.getElementById('hitCount');
+    const scList = document.getElementById('scList');
+    const hitCountDisplay = document.getElementById('scHitCount');
 
-    const systems = ["CoC 6th", "CoC 7th", "エモクロア", "マダミス"];
-    let currentSystemFilter = "すべて";
+    // --- ★ 横スクロールタブの生成とクリック処理 ---
+    function renderSystemTabs() {
+        const container = document.getElementById('systemTabs');
+        if (!container) return;
 
-    function setupSelect(displayId, optionsId, hiddenId, onChange = null) {
+        // タブのHTMLを生成
+        let tabsHtml = `<button class="sys-tab-btn active" data-sys="すべて">すべて</button>`;
+        systems.forEach(sys => {
+            tabsHtml += `<button class="sys-tab-btn" data-sys="${sys}">${sys}</button>`;
+        });
+        container.innerHTML = tabsHtml;
+
+        // タブをクリックした時の処理を設定
+        container.querySelectorAll('.sys-tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // 一旦すべてのタブから 'active' を外す
+                container.querySelectorAll('.sys-tab-btn').forEach(b => b.classList.remove('active'));
+                // クリックされたタブに 'active' を付ける（色が変わる）
+                e.target.classList.add('active');
+
+                // 現在のフィルター条件を更新してリストを再描画
+                currentSystemFilter = e.target.getAttribute('data-sys');
+                updateFormTitle();
+                renderScenarios();
+            });
+        });
+        updateFormTitle();
+    }
+
+    function updateFormTitle() {
+        const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
+        const formTitle = document.getElementById('formTitleLabel');
+        if (formTitle) {
+            formTitle.innerHTML = `🆕 行きたいシナリオ登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel})</span>`;
+        }
+
+        // 新規登録の時は、選択中のタブのシステムを登録用プルダウンの初期値にする
+        if (editingIndex === null) {
+            const sysDisplay = document.getElementById('scSystemDisplay');
+            const sysHidden = document.getElementById('scSystemHidden');
+            if (sysDisplay && sysHidden) {
+                sysDisplay.innerText = sysLabel;
+                sysHidden.value = sysLabel;
+            }
+        }
+    }
+
+    function setupCustomSelect(displayId, optionsId, hiddenId, onChangeCallback = null) {
         const display = document.getElementById(displayId);
         const options = document.getElementById(optionsId);
         const hidden = document.getElementById(hiddenId);
-        if(!display) return;
+
+        if (!display || !options || !hidden) return;
 
         display.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -74,44 +128,21 @@ document.addEventListener('DOMContentLoaded', () => {
         options.querySelectorAll('.option-item').forEach(item => {
             item.addEventListener('click', () => {
                 const val = item.getAttribute('data-value');
-                display.innerText = item.innerText;
+                display.innerText = val;
                 hidden.value = val;
                 options.classList.remove('active');
-                if (onChange) onChange();
+                if (onChangeCallback) onChangeCallback();
             });
         });
     }
 
-    setupSelect('filterStatusDisplay', 'filterStatusOptions', 'filterStatusHidden', renderList);
-    setupSelect('possStatusDisplay', 'possStatusOptions', 'possStatusHidden');
+    setupCustomSelect('scSystemDisplay', 'scSystemOptions', 'scSystemHidden');
 
     window.addEventListener('click', () => {
-        document.querySelectorAll('.select-options.active').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.select-options.active').forEach(el => {
+            el.classList.remove('active');
+        });
     });
-
-    function updateFormTitle() {
-        const sysLabel = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
-        document.getElementById('formTitleLabel').innerHTML = `🆕 所持シナリオの登録 <span style="font-size:12px; color:#999; font-weight:normal;">(${sysLabel}に追加)</span>`;
-    }
-
-    function renderSystemTabs() {
-        const container = document.getElementById('systemTabs');
-        container.innerHTML = `<button class="sys-tab-btn active" data-sys="すべて">すべて</button>`;
-        systems.forEach(sys => {
-            container.innerHTML += `<button class="sys-tab-btn" data-sys="${sys}">${sys}</button>`;
-        });
-
-        container.querySelectorAll('.sys-tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                container.querySelectorAll('.sys-tab-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentSystemFilter = e.target.getAttribute('data-sys');
-                updateFormTitle();
-                renderList();
-            });
-        });
-        updateFormTitle();
-    }
 
     document.getElementById('filterToggleBtn').addEventListener('click', function() {
         const box = document.getElementById('filterBox');
@@ -122,235 +153,204 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    ['filterTitle', 'filterMemo', 'filterTime'].forEach(id => {
+    ['filterScenario', 'filterPlayerNum', 'filterDuration'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener('input', renderList);
+        if (el) el.addEventListener('input', renderScenarios);
     });
 
-    document.getElementById('btnResetFilter').addEventListener('click', () => {
-        if(document.getElementById('filterTitle')) document.getElementById('filterTitle').value = '';
-        if(document.getElementById('filterMemo')) document.getElementById('filterMemo').value = '';
-        if(document.getElementById('filterTime')) document.getElementById('filterTime').value = '';
-
-        document.getElementById('filterStatusHidden').value = 'すべて';
-        document.getElementById('filterStatusDisplay').innerText = '状態';
-        renderList();
-    });
-
-    function getStatusClass(status) {
-        if (status.includes('未読')) return 'unread';
-        if (status.includes('読了')) return 'read';
-        if (status.includes('回せる')) return 'ready';
-        if (status.includes('PL通過')) return 'played';
-        return '';
+    const btnResetFilter = document.getElementById('btnResetFilter');
+    if (btnResetFilter) {
+        btnResetFilter.addEventListener('click', () => {
+            document.getElementById('filterScenario').value = '';
+            document.getElementById('filterPlayerNum').value = '';
+            document.getElementById('filterDuration').value = '';
+            renderScenarios();
+        });
     }
 
-    function renderList() {
-        if (!listContainer) return;
-        listContainer.innerHTML = '';
+    function renderScenarios() {
+        if (!scList) return;
+        scList.innerHTML = '';
 
-        const fTitle = document.getElementById('filterTitle') ? document.getElementById('filterTitle').value.trim().toLowerCase() : '';
-        const fMemo = document.getElementById('filterMemo') ? document.getElementById('filterMemo').value.trim().toLowerCase() : '';
-        const fTime = document.getElementById('filterTime') ? document.getElementById('filterTime').value.trim().toLowerCase() : '';
-        const fStatus = document.getElementById('filterStatusHidden').value;
+        const fScenario = document.getElementById('filterScenario').value.trim().toLowerCase();
+        const fPlayerNum = document.getElementById('filterPlayerNum').value.trim().toLowerCase();
+        const fDuration = document.getElementById('filterDuration').value.trim().toLowerCase();
         let hitCount = 0;
 
-        if (possData.length === 0) {
-            listContainer.innerHTML = '<div class="empty-message-box">登録された所持シナリオはありません</div>';
+        if (scenarios.length === 0) {
+            scList.innerHTML = '<div class="empty-message-box">登録された行きたいシナリオはありません</div>';
             if (hitCountDisplay) hitCountDisplay.innerText = "0";
             return;
         }
 
-        let displayedCount = 0; // 実際に表示された件数をカウント
+        scenarios.forEach((s) => {
+            // ★ タブで選ばれたシステム以外は弾く
+            if (currentSystemFilter !== 'すべて' && s.system !== currentSystemFilter) return;
 
-        possData.forEach((item) => {
-            if (currentSystemFilter !== 'すべて' && item.system !== currentSystemFilter) return;
-            if (fStatus !== 'すべて' && item.status !== fStatus) return;
-            if (fTitle !== '' && (!item.title || !item.title.toLowerCase().includes(fTitle))) return;
-            if (fMemo !== '' && (!item.memo || !item.memo.toLowerCase().includes(fMemo))) return;
+            if (fScenario !== '' && (!s.title || !s.title.toLowerCase().includes(fScenario))) return;
+            if (fPlayerNum !== '' && (!s.playerNum || !s.playerNum.toLowerCase().includes(fPlayerNum))) return;
 
-            if (fTime !== '') {
-                if (!item.time) return;
-                let isMatch = item.time.toLowerCase().includes(fTime);
-                const searchNumMatch = fTime.match(/(\d+(?:\.\d+)?)/);
+            if (fDuration !== '') {
+                if (!s.duration) return;
+                let isMatch = s.duration.toLowerCase().includes(fDuration);
+                const searchNumMatch = fDuration.match(/(\d+(?:\.\d+)?)/);
                 if (!isMatch && searchNumMatch) {
                     const searchNum = parseFloat(searchNumMatch[1]);
-                    const rangeMatch = item.time.match(/(\d+(?:\.\d+)?)\s*[〜~-]\s*(\d+(?:\.\d+)?)/);
+                    const rangeMatch = s.duration.match(/(\d+(?:\.\d+)?)\s*[〜~-]\s*(\d+(?:\.\d+)?)/);
                     if (rangeMatch) {
                         const min = parseFloat(rangeMatch[1]);
                         const max = parseFloat(rangeMatch[2]);
                         if (searchNum >= min && searchNum <= max) isMatch = true;
                     } else {
-                        const singleMatch = item.time.match(/(\d+(?:\.\d+)?)/);
-                        if (singleMatch) {
-                            const val = parseFloat(singleMatch[1]);
-                            if (searchNum === val) isMatch = true;
-                        }
+                        const singleMatch = s.duration.match(/(\d+(?:\.\d+)?)/);
+                        if (singleMatch && parseFloat(singleMatch[1]) === searchNum) isMatch = true;
                     }
                 }
                 if (!isMatch) return;
             }
 
             hitCount++;
-            displayedCount++;
 
-            const div = document.createElement('div');
-            div.className = 'list-item';
+            const item = document.createElement('div');
+            item.className = 'list-item';
 
-            const badgeClass = getStatusClass(item.status);
-
-            let linksHtml = '';
-            if (item.url) {
-                linksHtml += `<a href="${item.url}" target="_blank" style="display:inline-block; background:#ffe0b2; color:#e65100; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🛍️ 配布元</a>`;
+            let linkHtml = '';
+            if (s.url) {
+                linkHtml = `<a href="${s.url}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:#ffe0b2; color:#e65100; padding:8px 16px; border-radius:10px; font-size:13px; font-weight:bold; text-decoration:none; margin-bottom:10px;">🛍️ Booth / URL</a>`;
             }
-            if (item.ccfoliaUrl) {
-                linksHtml += `<a href="${item.ccfoliaUrl}" target="_blank" style="display:inline-block; background:#c8e6c9; color:#2e7d32; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; text-decoration:none;">🎲 ココフォリア</a>`;
-            }
-            const linksContainer = linksHtml ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">${linksHtml}</div>` : '';
 
-            const infoHtml = (item.players || item.time) ? `<div class="item-info-row"><span>👥 ${item.players || '未定'}</span><span>⏳ ${item.time || '未定'}</span></div>` : '';
-            const memoHtml = item.memo ? `<div style="font-size:12px; color:#777; background:#f8f9fa; padding:8px; border-radius:8px; margin-top:8px;">📝 ${item.memo}</div>` : '';
+            const infoHtml = (s.playerNum || s.duration) ? `<div class="sc-info-row"><span>👥 ${s.playerNum || '未定'}</span><span>⏳ ${s.duration || '未定'}</span></div>` : '';
+            const hoHtml = s.ho ? `<div style="font-size: 13px; font-weight: bold; color: #76ADAF; margin-bottom: 10px; border-left: 3px solid #76ADAF; padding-left: 8px;">✋ 握りたいHO: ${s.ho}</div>` : '';
+            const memoHtml = s.memo ? `<div class="memo-display-box">${s.memo.replace(/\n/g, '<br>')}</div>` : '';
 
-            const counterHtml = `
-                <div class="control-row">
-                    <div class="count-display">KP/GM回数: <strong>${item.runCount || 0}</strong> 回</div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="cnt-btn" onclick="updateRunCount('${item.id}', -1)">-</button>
-                        <button class="cnt-btn" onclick="updateRunCount('${item.id}', 1)">+</button>
-                    </div>
-                </div>
-            `;
-
-            div.innerHTML = `
+            // ★ idを使って修正・削除を実行するように変更
+            item.innerHTML = `
                 <div class="item-actions-corner">
-                    <button class="corner-btn edit" onclick="editItem('${item.id}')">修正</button>
-                    <button class="corner-btn delete" onclick="deleteItem('${item.id}')">削除</button>
+                    <button class="corner-btn edit" onclick="editScenario('${s.id}')">修正</button>
+                    <button class="corner-btn delete" onclick="deleteScenario('${s.id}')">削除</button>
                 </div>
 
-                <span class="status-badge ${badgeClass}">${item.status}</span>
-                <span class="sys-badge">${item.system || 'CoC 6th'}</span>
+                <span class="sys-badge">${s.system || 'CoC 6th'}</span>
 
-                <div class="item-title">${item.title}</div>
+                <div class="sc-title-row">${s.title}</div>
                 ${infoHtml}
+                ${hoHtml}
+                ${linkHtml}
                 ${memoHtml}
-                ${linksContainer}
-                ${counterHtml}
             `;
-            listContainer.appendChild(div);
+            scList.appendChild(item);
         });
 
-        // 絞り込みの結果、1件も該当しなかった場合
-        if (possData.length > 0 && displayedCount === 0) {
-            listContainer.innerHTML = '<div class="empty-message-box">条件に一致するシナリオはありません</div>';
-        }
-
         if (hitCountDisplay) hitCountDisplay.innerText = hitCount;
+
+        if (hitCount === 0 && scenarios.length > 0) {
+            scList.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:14px; font-weight:bold;">条件に一致するシナリオはありません</div>';
+        }
     }
 
     // ==========================================
-    // ★ Firebaseへのデータ保存処理
+    // ★ 3. Firebaseの金庫へデータを保存する処理
     // ==========================================
-    document.getElementById('btnAddPoss').addEventListener('click', () => {
-        if (!currentUser) return alert("ログインしてください");
+    const btnAddScenario = document.getElementById('btnAddScenario');
+    if (btnAddScenario) {
+        btnAddScenario.addEventListener('click', () => {
+            if (!currentUser) return alert("ログインしてください");
 
-        const title = document.getElementById('possTitle').value.trim();
-        const status = document.getElementById('possStatusHidden').value;
-        let players = document.getElementById('possPlayers').value.trim();
-        let time = document.getElementById('possTime').value.trim();
-        const url = document.getElementById('possUrl').value.trim();
-        const ccfoliaUrl = document.getElementById('possCcfoliaUrl').value.trim();
-        const runCount = parseInt(document.getElementById('possRunCount').value) || 0;
-        const memo = document.getElementById('possMemo').value.trim();
+            const title = document.getElementById('scTitle').value.trim();
+            let playerNum = document.getElementById('scPlayerNum').value.trim();
+            let duration = document.getElementById('scDuration').value.trim();
+            const system = document.getElementById('scSystemHidden').value;
+            const url = document.getElementById('scUrl').value.trim();
+            const ho = document.getElementById('scHo').value.trim();
+            const memo = document.getElementById('scMemo').value.trim();
 
-        if (!title) { alert('シナリオ名を入力してください'); return; }
+            if (playerNum && !playerNum.includes('PL') && !playerNum.includes('人') && !playerNum.includes('タイマン')) playerNum += 'PL';
+            if (duration && !duration.includes('時間') && !duration.includes('分')) duration += '時間';
 
-        if (players && /[0-9０-９]$/.test(players) && !players.includes('人')) players += 'PL';
-        if (time && /[0-9０-９]$/.test(time) && !time.includes('分')) time += '時間';
+            if (!title) {
+                alert('シナリオ名を入力してください');
+                return;
+            }
 
-        const now = Date.now();
-        const system = currentSystemFilter === 'すべて' ? 'CoC 6th' : currentSystemFilter;
+            const now = Date.now();
+            const newData = {
+                title: title,
+                playerNum: playerNum,
+                duration: duration,
+                system: system,
+                url: url,
+                ho: ho,
+                memo: memo,
+                updatedAt: now // 更新日時
+            };
 
-        const newData = {
-            system: editingId ? (possData.find(d => d.id === editingId)?.system || 'CoC 6th') : system,
-            title, status, players, time, url, ccfoliaUrl, runCount, memo,
-            updatedAt: now
-        };
+            const targetCollection = db.collection("users").doc(currentUser.uid).collection("scenario_want");
 
-        const targetCollection = db.collection("users").doc(currentUser.uid).collection("scenario_poss");
+            if (editingIndex !== null) {
+                // ★ 修正モード：既存のデータを上書き保存
+                targetCollection.doc(editingIndex).set(newData, { merge: true }).then(() => {
+                    editingIndex = null;
+                    resetFormUI();
+                });
+            } else {
+                // ★ 新規登録モード：新しくデータを追加（作られた時間も記録する）
+                newData.createdAt = now;
+                targetCollection.add(newData).then(() => {
+                    resetFormUI();
+                });
+            }
+        });
+    }
 
-        if (editingId) {
-            targetCollection.doc(editingId).set(newData, { merge: true }).then(() => {
-                editingId = null;
-                resetForm();
-                document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
-                const btn = document.getElementById('btnAddPoss');
-                btn.innerText = '本棚に追加';
-                btn.classList.remove('edit-mode');
-            });
-        } else {
-            newData.createdAt = now;
-            targetCollection.add(newData).then(() => {
-                resetForm();
-            });
-        }
-    });
+    function resetFormUI() {
+        document.getElementById('formTitleLabel').innerText = '🆕 行きたいシナリオ登録';
+        const btn = document.getElementById('btnAddScenario');
+        btn.innerText = 'リストに追加';
+        btn.classList.remove('edit-mode');
+        document.getElementById('scTitle').value = '';
+        document.getElementById('scPlayerNum').value = '';
+        document.getElementById('scDuration').value = '';
+        document.getElementById('scUrl').value = '';
+        document.getElementById('scHo').value = '';
+        document.getElementById('scMemo').value = '';
+        updateFormTitle();
+    }
 
-    // ★ カウンター増減処理
-    window.updateRunCount = (id, delta) => {
-        const item = possData.find(d => d.id === id);
-        if (item) {
-            const newCount = Math.max(0, (parseInt(item.runCount) || 0) + delta);
-            db.collection("users").doc(currentUser.uid).collection("scenario_poss")
-              .doc(id).set({ runCount: newCount }, { merge: true });
-        }
-    };
+    // ★ 修正ボタンを押したときの処理
+    window.editScenario = (id) => {
+        const s = scenarios.find(doc => doc.id === id);
+        if (!s) return;
+        editingIndex = id;
 
-    window.editItem = (id) => {
-        const item = possData.find(d => d.id === id);
-        if(!item) return;
-        editingId = id;
+        document.getElementById('scTitle').value = s.title || '';
+        document.getElementById('scPlayerNum').value = s.playerNum ? s.playerNum.replace(/PL$/, '') : '';
+        document.getElementById('scDuration').value = s.duration ? s.duration.replace(/時間$/, '') : '';
+        document.getElementById('scUrl').value = s.url || '';
+        document.getElementById('scHo').value = s.ho || '';
+        document.getElementById('scMemo').value = s.memo || '';
 
-        document.getElementById('possTitle').value = item.title || '';
-        document.getElementById('possPlayers').value = item.players ? item.players.replace(/PL$/, '') : '';
-        document.getElementById('possTime').value = item.time ? item.time.replace(/時間$/, '') : '';
-        document.getElementById('possUrl').value = item.url || '';
-        document.getElementById('possCcfoliaUrl').value = item.ccfoliaUrl || '';
-        document.getElementById('possRunCount').value = item.runCount || 0;
-        document.getElementById('possMemo').value = item.memo || '';
+        document.getElementById('scSystemHidden').value = s.system || 'CoC 6th';
+        document.getElementById('scSystemDisplay').innerText = s.system || 'CoC 6th';
 
-        document.getElementById('possStatusHidden').value = item.status || '未読 (積読)';
-        document.getElementById('possStatusDisplay').innerText = item.status || '未読 (積読)';
-
-        document.getElementById('formTitleLabel').innerText = `✍️ シナリオ情報の修正 (${item.system || 'CoC 6th'})`;
-        const btn = document.getElementById('btnAddPoss');
+        document.getElementById('formTitleLabel').innerText = `✍️ 登録情報の修正 (${s.system || 'CoC 6th'})`;
+        const btn = document.getElementById('btnAddScenario');
         btn.innerText = '情報を更新する';
         btn.classList.add('edit-mode');
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    window.deleteItem = (id) => {
-        if (confirm('このシナリオを本棚から削除しますか？')) {
-            db.collection("users").doc(currentUser.uid).collection("scenario_poss").doc(id).delete();
-            if (editingId === id) {
-                editingId = null;
-                resetForm();
-                document.getElementById('formTitleLabel').innerText = '🆕 所持シナリオの登録';
-                const btn = document.getElementById('btnAddPoss');
-                btn.innerText = '本棚に追加';
-                btn.classList.remove('edit-mode');
-            }
+    // ★ 削除ボタンを押したときの処理
+    window.deleteScenario = (id) => {
+        if (!confirm('このシナリオを削除しますか？')) return;
+        db.collection("users").doc(currentUser.uid).collection("scenario_want").doc(id).delete();
+
+        if (editingIndex === id) {
+            editingIndex = null;
+            resetFormUI();
         }
     };
 
-    function resetForm() {
-        document.getElementById('possTitle').value = '';
-        document.getElementById('possPlayers').value = '';
-        document.getElementById('possTime').value = '';
-        document.getElementById('possUrl').value = '';
-        document.getElementById('possCcfoliaUrl').value = '';
-        document.getElementById('possRunCount').value = '';
-        document.getElementById('possMemo').value = '';
-    }
-
+    // 一番最後にタブを生成する！
     renderSystemTabs();
 });

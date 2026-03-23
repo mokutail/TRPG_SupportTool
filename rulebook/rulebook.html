@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoCルールブック (管理者専用)</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="rulebook.css">
+</head>
+<body class="body">
+<div class="tool-header">
+    <h2 class="header-title">📖 CoCルールブック</h2>
+    <button class="back-btn" onclick="window.location.href='../index.html'">🏠 戻る</button>
+</div>
+
+<div id="rulebook-view" class="view" style="display: none; max-width: 800px; margin: 0 auto;">
+    
+    <div class="header-actions">
+        <button id="toggle-edit-btn" class="toggle-btn">🔓 新規登録モード</button>
+    </div>
+    
+    <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-input" placeholder="ルール名や技能を検索...">
+    </div>
+
+    <div id="active-filter-container"></div>
+ 
+    <div id="input-form-area" class="form-card hidden">
+        <h3 class="form-card-title" id="form-title">✏️ 新しいルールを登録</h3>
+        
+        <input type="text" id="rule-title" class="form-input" placeholder="タイトル (例: 狂気の発作)">
+        <input type="text" id="rule-tags" class="form-input" placeholder="タグをカンマ(,)か句点(、)で区切って入力">
+        
+        <div class="form-row">
+            <input list="rulebook-list" id="rule-book" class="form-input" placeholder="ルルブ/サプリ名を選択 or 入力">
+            <datalist id="rulebook-list">
+                <option value="基本(第6版)">
+                <option value="新クトゥルフ(第7版)">
+                <option value="マレウス・モンストロルム">
+                <option value="キーパーコンパニオン">
+                <option value="クトゥルフ2010">
+                <option value="クトゥルフ2015">
+                <option value="カルト・ナウ">
+            </datalist>
+            <input type="text" id="rule-page" class="form-input" placeholder="ページ数 (例: p.123)">
+        </div>
+
+        <textarea id="rule-content" class="form-textarea" placeholder="ルールの詳細内容を手打ち..."></textarea>
+        
+        <div class="table-input-area">
+            <p style="margin-top:0; font-size:13px; font-weight:bold; color:#555;">📋 表データの追加 (ダイス表など)</p>
+            <div id="table-rows-container"></div>
+            <button id="add-table-row-btn" class="add-row-btn" type="button">＋ 表の行を追加</button>
+        </div>
+
+        <label class="checkbox-label">
+            <input type="checkbox" id="rule-is-secret">
+            🔒 管理者のみに表示する（特別閲覧者には完全に隠す）
+        </label>
+
+        <div class="form-row">
+            <button id="save-btn" class="save-btn" type="button">💾 登録する</button>
+            <button id="cancel-edit-btn" class="save-btn" style="background:#999; display:none;" type="button">❌ キャンセル</button>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <div id="rules-list"></div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="rulebook.js"></script>
+</body>
+</html>
