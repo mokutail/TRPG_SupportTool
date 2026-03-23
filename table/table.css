@@ -524,3 +524,23 @@ details.skills-accordion[open] summary::before { content: '▼ '; }
 }
 .edit-history-delete:active { transform: scale(0.9); }
 
+/* ==========================================================
+   ★追加：PCリストアイテムのホバー（浮き上がり）アニメーション
+========================================================== */
+.list-item {
+    /* アニメーションの対象にtransformとbox-shadowを追加 */
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s !important;
+}
+
+/* カーソルを乗せた時に浮き上がる処理 */
+.list-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+/* クリックした時に沈み込む処理 */
+.list-item:active {
+    background-color: #f9f9f9 !important;
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
