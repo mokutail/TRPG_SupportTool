@@ -300,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ★ 職業のプルダウン初期化を削除しました
     const selectGender = setupDynamicSelect('trpg_custom_genders', ['女', '男'], 'pcGenderDisplay', 'pcGenderHidden', 'pcGenderOptions', '性別', updateGenderFilterOptions);
     const selectRace = setupDynamicSelect('trpg_custom_races', ['人間', '吸血鬼', 'エルフ', '不明'], 'pcRaceDisplay', 'pcRaceHidden', 'pcRaceOptions', '種族');
 
@@ -340,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ★ フィルターのイベントに filterJob を追加
     ['filterTags', 'filterScenario', 'filterName', 'filterHO', 'filterAge', 'filterJob'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('input', renderPcList);
@@ -352,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filterHO').value = '';
         document.getElementById('filterTags').value = '';
         if(document.getElementById('filterAge')) document.getElementById('filterAge').value = '';
-        if(document.getElementById('filterJob')) document.getElementById('filterJob').value = ''; // ★ リセットに追加
+        if(document.getElementById('filterJob')) document.getElementById('filterJob').value = ''; 
 
         document.getElementById('filterGender').value = 'すべて';
         document.getElementById('filterStatus').value = 'すべて';
@@ -391,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fName = document.getElementById('filterName').value.trim().toLowerCase();
         const fHO = document.getElementById('filterHO').value.trim().toLowerCase();
         const fAge = document.getElementById('filterAge') ? document.getElementById('filterAge').value.trim() : '';
-        const fJob = document.getElementById('filterJob') ? document.getElementById('filterJob').value.trim().toLowerCase() : ''; // ★ 職業検索の値を取得
+        const fJob = document.getElementById('filterJob') ? document.getElementById('filterJob').value.trim().toLowerCase() : ''; 
 
         const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'default';
         const sortOrder = document.getElementById('sortOrderBtn') ? document.getElementById('sortOrderBtn').getAttribute('data-order') : 'desc';
@@ -410,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fName !== '' && (!pc.name || !pc.name.toLowerCase().includes(fName))) return;
             if (fTags !== '' && (!pc.tags || !pc.tags.toLowerCase().includes(fTags))) return;
 
-            // ★ 職業の部分一致検索
             if (fJob !== '' && (!pc.job || !pc.job.toLowerCase().includes(fJob))) return;
 
             if (fAge !== '') {
@@ -508,6 +505,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const item = document.createElement('div');
             item.className = 'list-item';
+            
+            // ★変更点：カード全体をクリック可能にする（ルルブと同じ挙動）
+            item.style.cursor = 'pointer';
+            item.onclick = () => openDetail(pc.id);
 
             const safeImage = pc.image ? `background-image: url(${pc.image});` : `display:flex; justify-content:center; align-items:center; color:#aaa; font-size:30px;`;
             const safeName = pc.name || '名無し';
@@ -515,12 +516,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeScenario = latestHistory.scenario || '履歴なし';
             const historyCount = pc.history ? pc.history.length : 0;
 
+            // ★変更点：「詳細」ボタンを削除。他のボタンには event.stopPropagation() を追加してカードクリックの誤爆を防ぐ
             item.innerHTML = `
                 <div class="item-actions-corner" style="position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 6px; z-index: 10;">
                     <span style="font-size:11px; color:#999; font-weight:bold; text-align:center; margin-right: 4px;">${safeSystem}</span>
-                    <button class="corner-btn detail" onclick="openDetail('${pc.id}')" style="background: #e8f5e9; color: #2e7d32; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">詳細</button>
-                    <button class="corner-btn continue" onclick="openContinueModal('${pc.id}')" style="background: #e3f2fd; color: #0277bd; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">継続</button>
-                    <button class="corner-btn delete" onclick="deletePc('${pc.id}')" style="background: #ffebee; color: #d32f2f; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">削除</button>
+                    <button class="corner-btn continue" onclick="openContinueModal('${pc.id}'); event.stopPropagation();" style="background: #e3f2fd; color: #0277bd; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">継続</button>
+                    <button class="corner-btn delete" onclick="deletePc('${pc.id}'); event.stopPropagation();" style="background: #ffebee; color: #d32f2f; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer;">削除</button>
                 </div>
 
                 <div class="pl-list-layout" style="display: flex; gap: 15px; align-items: flex-start;">
@@ -607,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const age = ageEl ? ageEl.value.trim() : '';
         const birthday = document.getElementById('pcBirthdayInput') ? document.getElementById('pcBirthdayInput').value.trim() : '';
         const race = document.getElementById('pcRaceHidden').value;
-        const job = document.getElementById('pcJobInput') ? document.getElementById('pcJobInput').value.trim() : ''; // ★ 職業入力値を取得
+        const job = document.getElementById('pcJobInput') ? document.getElementById('pcJobInput').value.trim() : ''; 
         const tags = document.getElementById('pcTags').value.trim();
         const url = document.getElementById('pcUrl').value.trim();
         const iacharaText = document.getElementById('pcIachara').value.trim();
@@ -650,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(document.getElementById('pcAgeInput')) document.getElementById('pcAgeInput').value = '';
             if(document.getElementById('pcHeightInput')) document.getElementById('pcHeightInput').value = '';
             if(document.getElementById('pcBirthdayInput')) document.getElementById('pcBirthdayInput').value = '';
-            if(document.getElementById('pcJobInput')) document.getElementById('pcJobInput').value = ''; // ★ 職業をリセット
+            if(document.getElementById('pcJobInput')) document.getElementById('pcJobInput').value = ''; 
             document.getElementById('pcTags').value = '';
             document.getElementById('pcUrl').value = '';
             document.getElementById('pcIachara').value = '';
