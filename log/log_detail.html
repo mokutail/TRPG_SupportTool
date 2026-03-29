@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ログ詳細</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="log.css">
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title" id="pageTitle" style="word-break:break-all;">📑 ログ詳細</span>
+    <button class="back-btn" onclick="location.href='log.html'">🏠 戻る</button>
+</h2>
+
+<div class="view" id="detailView" style="display: none;">
+    <div class="filter-buttons" id="filterBtnGroup" style="margin-bottom: 15px;">
+        <button class="filter-btn detail-filter active" data-filter="all">ALL</button>
+        <button class="filter-btn detail-filter" data-filter="critical" style="color:#0277bd;">クリティカル</button>
+        <button class="filter-btn detail-filter" data-filter="fumble" style="color:#c62828;">ファンブル</button>
+        <button class="filter-btn detail-filter" data-filter="special" style="color:#e65100;">スペシャル</button>
+        <button class="filter-btn detail-filter" data-filter="success" style="color:#2e7d32;">成功</button>
+        <button class="filter-btn detail-filter" data-filter="failure" style="color:#616161;">失敗</button>
+    </div>
+
+    <div id="detailOverallStatsArea" style="margin-bottom: 15px; background: #fff; padding: 15px; border-radius: 12px; border: 2px solid #76ADAF; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"></div>
+
+    <div id="detailParsedListContainer"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="log_detail.js"></script>
+</body>
+</html>

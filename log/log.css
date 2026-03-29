@@ -1,0 +1,80 @@
+/* ログ解析ツール専用スタイル：log.css */
+
+.cute-main-tabs {
+    display: flex; background: #e0f2f1; border-radius: 40px; padding: 6px; margin-bottom: 25px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+}
+.cute-main-tab-btn {
+    flex: 1; padding: 14px 20px; border: none; background: transparent; border-radius: 34px; font-size: 15px; font-weight: 900; color: #00695c; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); -webkit-tap-highlight-color: transparent; text-align: center;
+}
+.cute-main-tab-btn.active {
+    background: #fff; color: #76ADAF; box-shadow: 0 4px 15px rgba(118, 173, 175, 0.2);
+}
+
+.upload-area {
+    border: 3px dashed #76ADAF; background: #f0f7f7; border-radius: 20px; padding: 50px 20px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: background 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.upload-area:active, .upload-area.dragover { background: #e0f2f1; border-color: #00695c; }
+
+.filter-buttons {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; white-space: nowrap;
+}
+.filter-buttons::-webkit-scrollbar { display: none; }
+.filter-btn {
+    padding: 10px 18px; border: 2px solid #eee; background: #fff; border-radius: 25px; font-size: 13px; font-weight: bold; color: #555; cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.filter-btn.active { border-color: #76ADAF; background: #e0f2f1; color: #00695c; }
+
+/* アコーディオンのスタイル */
+.log-char-accordion {
+    background: #fff; border-radius: 15px; margin-bottom: 20px; border: 2px solid #e0f2f1; box-shadow: 0 4px 10px rgba(0,0,0,0.03); overflow: hidden; transition: all 0.2s;
+}
+/* ★ 自分のキャラをハイライトする色！ */
+.log-char-accordion.my-char {
+    border-color: #ffb74d; background: #fff8e1;
+}
+
+.log-char-summary {
+    padding: 15px 20px; cursor: pointer; list-style: none; display: flex; flex-direction: column; gap: 8px; background: transparent; transition: background 0.2s; -webkit-tap-highlight-color: transparent; outline: none;
+}
+.log-char-summary::-webkit-details-marker { display: none; }
+.log-char-accordion.my-char .log-char-summary { background: #fff3e0; }
+.log-char-summary:active { background: #f0f7f7; }
+.log-char-accordion[open] .log-char-summary { border-bottom: 2px dashed #eee; }
+
+.log-char-header-top { display: flex; justify-content: space-between; align-items: center; }
+.log-char-title { font-size: 18px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 10px; }
+.log-char-toggle-icon { color: #76ADAF; font-weight: bold; transition: transform 0.3s; }
+.log-char-accordion[open] .log-char-toggle-icon { transform: rotate(180deg); }
+
+.log-char-stats { font-size: 12px; color: #666; display: flex; gap: 10px; flex-wrap: wrap; }
+.log-char-content { padding: 15px; }
+
+/* 個別のログ行 */
+.log-item {
+    padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; gap: 10px; line-height: 1.5;
+}
+.log-item:last-child { margin-bottom: 0; }
+.log-item-content { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+
+.log-item.critical { background: #E1F5FE; color: #0277bd; border-left: 5px solid #03A9F4; }
+.log-item.fumble   { background: #FFEBEE; color: #c62828; border-left: 5px solid #F44336; }
+.log-item.special  { background: #FFF3E0; color: #e65100; border-left: 5px solid #FF9800; }
+.log-item.success  { background: #E8F5E9; color: #2e7d32; border-left: 5px solid #4CAF50; }
+.log-item.failure  { background: #F5F5F5; color: #616161; border-left: 5px solid #9E9E9E; }
+
+.log-type-label { font-size: 11px; opacity: 0.8; font-family: monospace; letter-spacing: 1px; }
+
+.roll-value-badge {
+    font-size: 20px; font-weight: 900; background: rgba(255,255,255,0.6); padding: 8px 12px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; min-width: 45px; flex-shrink: 0;
+}
+
+.saved-list-item {
+    background: #fff; padding: 20px; border-radius: 15px; margin-bottom: 16px; border: 1px solid #ddd; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.saved-list-item:active { background: #f9f9f9; }
+
+/* ★ 自キャラ指定ボタン */
+.btn-my-char {
+    font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid #ffb74d; background: #fff; color: #f57c00; cursor: pointer; transition: 0.2s; margin-left: 8px;
+}
+.btn-my-char.active { background: #ff9800; color: #fff; border-color:#f57c00; }

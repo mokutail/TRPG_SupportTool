@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ログ解析ツール</title>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="log.css">
+    <style>
+        /* ★ 可愛い検索バー（ぽってりピル型）のスタイル */
+        .search-bar-wrapper {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #e0e0e0; /* 枠線を少し濃くして見やすく */
+            border-radius: 30px; /* 全体をぽってり丸く */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.04); /* ほんのり影をつける */
+            margin-bottom: 12px;
+            padding: 5px; /* 内側に余白を持たせてボタンを独立させる */
+        }
+        .search-bar-wrapper:focus-within {
+            border-color: #76ADAF;
+            box-shadow: 0 6px 15px rgba(118, 173, 175, 0.2);
+            transform: translateY(-2px); /* 入力時にフワッと浮き上がる！ */
+        }
+        .search-icon {
+            padding-left: 12px;
+            color: #aaa;
+            font-size: 16px;
+        }
+        .search-bar-input {
+            flex: 1;
+            border: none;
+            padding: 12px 10px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+            background: transparent;
+            outline: none;
+            min-width: 0;
+        }
+        .search-bar-input::placeholder {
+            color: #bbb;
+            font-weight: normal; /* プレースホルダーは少し控えめに */
+        }
+        .search-bar-btn {
+            background: #76ADAF;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 25px; /* 内側のボタンも丸く！ */
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 5px rgba(118, 173, 175, 0.3);
+        }
+        .search-bar-btn:active {
+            background: #00695c;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="body">
+<h2 class="tool-header">
+    <span class="header-title">📑 ログ解析・保存</span>
+    <button class="back-btn" onclick="location.href='../index.html'">🏠 戻る</button>
+</h2>
+
+<div class="view">
+    <div class="cute-main-tabs" id="mainTabs">
+        <button class="cute-main-tab-btn active" id="tabAnalyzeBtn">📄 新規解析</button>
+        <button class="cute-main-tab-btn" id="tabSavedBtn">📚 保存済みログ</button>
+    </div>
+
+    <div id="viewAnalyze">
+        <div class="upload-area" id="dropZone" onclick="document.getElementById('logFileInput').click()">
+            <div style="font-size:30px; margin-bottom:10px;">⬆️</div>
+            <div style="font-weight:bold; color:#76ADAF; margin-bottom:10px;">ココフォリアのログファイル(.html)<br>を選択 または ドロップ</div>
+            <input type="file" id="logFileInput" accept=".html" style="display:none;">
+            <button class="action-btn" style="width: auto; padding: 10px 20px; display: inline-block;">ファイルを選択</button>
+        </div>
+
+        <div id="analyzeResultArea" style="display:none;">
+            <div class="filter-buttons" id="filterBtnGroup">
+                <button class="filter-btn main-filter active" data-filter="all">ALL</button>
+                <button class="filter-btn main-filter" data-filter="critical" style="color:#0277bd;">クリティカル</button>
+                <button class="filter-btn main-filter" data-filter="fumble" style="color:#c62828;">ファンブル</button>
+                <button class="filter-btn main-filter" data-filter="special" style="color:#e65100;">スペシャル</button>
+                <button class="filter-btn main-filter" data-filter="success" style="color:#2e7d32;">成功</button>
+                <button class="filter-btn main-filter" data-filter="failure" style="color:#616161;">失敗</button>
+            </div>
+
+            <div id="overallStatsArea" style="margin-bottom: 15px; background: #fff; padding: 15px; border-radius: 12px; border: 2px solid #76ADAF; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"></div>
+
+            <div id="parsedListContainer"></div>
+
+            <div id="saveLogSection" style="background:#f8f9fa; padding:15px; border-radius:15px; border:1px solid #eee; margin-top:20px; display:block;">
+                <label style="font-size:12px; color:#888; font-weight:bold; display:block; margin-bottom:8px;">この解析結果を保存する</label>
+                <input type="text" id="saveLogTitle" placeholder="タイトル (例: 満月の無い十五夜)" class="sc-band-input" style="margin-bottom:10px;">
+                <button class="action-btn" id="btnSaveLog">💾 クラウドに保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewSaved" style="display:none;">
+        <div style="background:#f8f9fa; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;">
+            <label style="font-size:12px; color:#888; font-weight:bold; display:block; margin-bottom:8px;">🔍 保存済みログを検索 / 累計統計</label>
+            
+            <div class="search-bar-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="filterLogTitle" placeholder="シナリオ名で検索" class="search-bar-input">
+                <button id="btnSearchTitle" class="search-bar-btn">検索</button>
+            </div>
+            
+            <div class="search-bar-wrapper" style="margin-bottom: 0;">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="filterLogChar" placeholder="探索者名で検索 (累計表示)" class="search-bar-input">
+                <button id="btnSearchChar" class="search-bar-btn">検索</button>
+            </div>
+        </div>
+        
+        <div id="cumulativeStatsArea" style="display:none; margin-bottom:20px; background:#fffaf0; padding:15px; border-radius:12px; border:2px solid #ffb74d; box-shadow:0 2px 5px rgba(0,0,0,0.05);"></div>
+
+        <div id="savedLogList"></div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script src="log.js"></script>
+</body>
+</html>

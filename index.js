@@ -183,7 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'scenario_poss', label: '📚 所持シナリオ管理', color: '#607d8b', href: 'scenario_poss/scenario_poss.html' },
         { id: 'table_want', label: '💭 行きたいシナリオ一覧', color: '#607d8b', href: 'scenario_want/scenario_want.html' },
         { id: 'table_kp', label: '🗓️ 卓管理', color: '#607d8b', href: 'kp/table_kp.html' },
-        { id: 'table_pl', label: '🎲 探索者管理', color: '#607d8b', href: 'table/table_pl.html' }
+        { id: 'table_pl', label: '🎲 探索者管理', color: '#607d8b', href: 'table/table_pl.html' },
+        { id: 'log_tool', label: '📑 ログ解析・保存', color: '#607d8b', href: 'log/log.html' }
     ];
 
     let currentMenu = JSON.parse(localStorage.getItem('trpg_menu_config'));
